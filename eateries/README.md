@@ -5,15 +5,16 @@
 ## 1. The Data Received
 The dataset analyzed consists of 3,623 rows and 4 columns detailing various eateries primarily located in San Francisco. Each entry provides essential information including a unique business identifier (`business_id`), the name of the business, and its geographic location represented by latitude and longitude coordinates. The data was sourced from `eateries.csv` within the `python/tdsproject2/eateries` directory. The data is complete with no missing values, ensuring robustness for further analysis.
 
-![Word Cloud](eateries/img/word_cloud.png)
+![Word Cloud](img/word_cloud.png)
 
 ## 2. The Analysis Carried Out
 For this analysis, several statistical and machine learning methods were utilized. Descriptive statistics were computed to summarize key data attributes such as mean, standard deviation, and value distributions for the columns. A pairplot visualization was generated to examine relationships between variables visually.
+![Pairplot](img/pairplot.png)
 
 Subsequently, KMeans clustering was implemented to segment the eateries into distinct groups based on their geospatial data. This dimensionality reduction technique helped in understanding clusters of businesses, allowing us to visualize how these eateries are organized geographically.
 
-![Pairplot](python/tdsproject2/eateries/pairplot.png)
-![KMean Clustering](eateries/img/kmean_clustering.png)
+
+![KMean Clustering](img/kmean_clustering.png)
 
 ## 3. The Insights Discovered
 The analysis revealed several key insights:
