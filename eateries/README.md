@@ -5,7 +5,7 @@
 ## 1. The Data Received
 The dataset analyzed consists of 3,623 rows and 4 columns detailing various eateries primarily located in San Francisco. Each entry provides essential information including a unique business identifier (`business_id`), the name of the business, and its geographic location represented by latitude and longitude coordinates. The data was sourced from `eateries.csv` within the `python/tdsproject2/eateries` directory. The data is complete with no missing values, ensuring robustness for further analysis.
 
-![Word Cloud](python/tdsproject2/eateries/word_cloud.png)
+![Word Cloud](eateries/img/word_cloud.png)
 
 ## 2. The Analysis Carried Out
 For this analysis, several statistical and machine learning methods were utilized. Descriptive statistics were computed to summarize key data attributes such as mean, standard deviation, and value distributions for the columns. A pairplot visualization was generated to examine relationships between variables visually.
@@ -13,7 +13,7 @@ For this analysis, several statistical and machine learning methods were utilize
 Subsequently, KMeans clustering was implemented to segment the eateries into distinct groups based on their geospatial data. This dimensionality reduction technique helped in understanding clusters of businesses, allowing us to visualize how these eateries are organized geographically.
 
 ![Pairplot](python/tdsproject2/eateries/pairplot.png)
-![KMean Clustering](python/tdsproject2/eateries/kmean_clustering.png)
+![KMean Clustering](eateries/img/kmean_clustering.png)
 
 ## 3. The Insights Discovered
 The analysis revealed several key insights:
@@ -21,7 +21,7 @@ The analysis revealed several key insights:
 - **Geographic Patterns**: A concentration of businesses within certain latitude and longitude ranges suggests common demographics or consumer bases in those areas.
 - **Business Diversity**: The variety of businesses indicates a bustling urban landscape with competition among supermarkets and eateries, pointing toward potential saturation in particular niches.
 
-![Trend Analyses](python/tdsproject2/eateries/trend_analysis.png)
+![Trend Analyses](eateries/img/trend_analysis.png)
 
 ## 4. The Implications of Your Findings
 The implications of these findings suggest various strategic actions for entrepreneurs and stakeholders:
