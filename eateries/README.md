@@ -14,7 +14,7 @@ For this analysis, several statistical and machine learning methods were utilize
 
 Subsequently, KMeans clustering was implemented to segment the eateries into distinct groups based on their geospatial data. This dimensionality reduction technique helped in understanding clusters of businesses, allowing us to visualize how these eateries are organized geographically.
 
-![KMean Clustering](img/kmean_clustering.png)
+![KMean Clustering](img/kmeans_clustering.png)
 
 ## 3. The Insights Discovered
 The analysis revealed several key insights:
