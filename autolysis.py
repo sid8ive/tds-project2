@@ -1,23 +1,20 @@
-import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns
-import requests
-import chardet
-from datetime import datetime
-from matplotlib import rcParams
-import re
-from wordcloud import WordCloud
 import os
 import subprocess
 import sys
-import base64
-import requests
-import json
-import base64
-import openai
-from openai import OpenAI
+import venv
 
-# Function to check and install required packages
+def create_venv(env_dir="venv"):
+    if not os.path.exists(env_dir):
+        print("Creating a virtual environment...")
+        try:
+            venv.create(env_dir, with_pip=True)
+            print("Virtual environment created.")
+        except Exception as e:
+            print(f"Error creating virtual environment: {e}")
+            sys.exit(1)
+    else:
+        print("Virtual environment already exists.")
+
 def install_package(package):
     try:
         print(f"Attempting to install {package}...")
@@ -27,42 +24,65 @@ def install_package(package):
         print(f"Error installing package: {package}")
         sys.exit(1)
 
-# List of required packages
+def setup_venv_and_install_packages(env_dir="venv", required_packages=[]):
+    create_venv(env_dir)
+    for package in required_packages:
+        try:
+            print(f"Checking if {package} is installed...")
+            subprocess.check_call([sys.executable, "-m", "pip", "show", package])
+            print(f"{package} is already installed.")
+        except subprocess.CalledProcessError:
+            print(f"Package {package} not found. Installing...")
+            install_package(package)
+
 required_packages = [
-    'pandas', 
-    'matplotlib', 
-    'seaborn', 
+    'pandas',
+    'matplotlib',
+    'seaborn',
     'tabulate',
-    'requests', 
-    'chardet',    
-    'wordcloud'
+    'requests',
+    'chardet',
+    'wordcloud',
+    'openai'
 ]
 
-# Install missing packages
-for package in required_packages:
-    try:
-        print(f"Checking if {package} is installed...")
-        __import__(package)
-        print(f"{package} is already installed.")
-    except ImportError:
-        print(f"Package {package} not found. Installing...")
-        install_package(package)
+setup_venv_and_install_packages(required_packages=required_packages)
 
-client = OpenAI()
+try:
+    import pandas as pd
+    import matplotlib.pyplot as plt
+    import seaborn as sns
+    import requests
+    import chardet
+    from datetime import datetime
+    from matplotlib import rcParams
+    import re
+    import base64
+    from wordcloud import WordCloud
+    import openai
+
+    print("All packages are successfully imported.")
+except ImportError as e:
+    print(f"ImportError: {e}. Ensure all packages are installed. You may need to re-run the script.")
+    sys.exit(1)
+
+
+
+#client = OpenAI()
 
 # Configuration Section
 CONFIG = {
-    "AI_PROXY_URL": "https://aiproxy.sanand.workers.dev/openai/v1/chat/completions",
-    #"AI_PROXY_URL": "https://api.openai.com/v1/chat/completions",
-    "AI_PROXY_TOKEN": os.getenv("AIPROXY_TOKEN")
+    "AIPROXY_URL": "https://aiproxy.sanand.workers.dev/openai/v1/chat/completions",
+    #"AIPROXY_URL": "https://api.openai.com/v1/chat/completions",
+    "AIPROXY_TOKEN": os.getenv("AIPROXY_TOKEN")
 }
 
-HEADERS = {"Authorization": f"Bearer {CONFIG['AI_PROXY_TOKEN']}", "Content-Type": "application/json"}
+HEADERS = {"Authorization": f"Bearer {CONFIG['AIPROXY_TOKEN']}", "Content-Type": "application/json"}
 
 saved_charts = []
 
 # Set the API key globally for the OpenAI library
-openai.api_key =  {CONFIG['AI_PROXY_TOKEN']}
+openai.api_key =  {CONFIG['AIPROXY_TOKEN']}
 
 
 # Function to generate a word cloud
@@ -103,10 +123,10 @@ def encode_image(image_path):
 def bot_helper_image(image_path, question="Describe the data and text in this image."):
     """Send an image and question to OpenAI GPT-4 Vision model for analysis."""
     # API Endpoint
-    endpoint = CONFIG['AI_PROXY_URL']
+    endpoint = CONFIG['AIPROXY_URL']
     
     # Set your OpenAI API key
-    api_key = CONFIG["AI_PROXY_TOKEN"]
+    api_key = CONFIG["AIPROXY_TOKEN"]
 
     # Encode the image to base64
     base64_image = encode_image(image_path)
@@ -175,7 +195,7 @@ def bot_helper(question, context):
                 }
             ]
         }
-        response = requests.post(CONFIG["AI_PROXY_URL"], headers=HEADERS, json=payload)
+        response = requests.post(CONFIG["AIPROXY_URL"], headers=HEADERS, json=payload)
         response.raise_for_status()
         response_json = response.json()
         
