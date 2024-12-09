@@ -1,53 +1,59 @@
 import os
 import subprocess
 import sys
-import venv
 
-def create_venv(env_dir="venv"):
-    if not os.path.exists(env_dir):
-        print("Creating a virtual environment...")
-        try:
-            venv.create(env_dir, with_pip=True)
-            print("Virtual environment created.")
-        except Exception as e:
-            print(f"Error creating virtual environment: {e}")
-            sys.exit(1)
-    else:
-        print("Virtual environment already exists.")
+# /// script
+# dependencies = [
+#   'requests',
+#   'pandas',
+#   'matplotlib',
+#   'seaborn',
+#   'tabulate',
+#   'requests',
+#   'chardet',
+#   'wordcloud',
+#   'openai'
+# ]
+# ///
 
-def install_package(package):
-    try:
-        print(f"Attempting to install {package}...")
-        subprocess.check_call([sys.executable, "-m", "pip", "install", package])
-        print(f"Successfully installed {package}.")
-    except subprocess.CalledProcessError:
-        print(f"Error installing package: {package}")
-        sys.exit(1)
+# # List of required packages
+# required_packages = [
+#     'pandas',
+#     'matplotlib',
+#     'seaborn',
+#     'tabulate',
+#     'requests',
+#     'chardet',
+#     'wordcloud',
+#     'openai'
+# ]
 
-def setup_venv_and_install_packages(env_dir="venv", required_packages=[]):
-    create_venv(env_dir)
-    for package in required_packages:
-        try:
-            print(f"Checking if {package} is installed...")
-            subprocess.check_call([sys.executable, "-m", "pip", "show", package])
-            print(f"{package} is already installed.")
-        except subprocess.CalledProcessError:
-            print(f"Package {package} not found. Installing...")
-            install_package(package)
+# # Function to install a package
+# def install_package(package):
+#     try:
+#         print(f"Attempting to install {package}...")
+#         subprocess.check_call([sys.executable, "-m", "pip", "install", package])
+#         print(f"Successfully installed {package}.")
+#     except subprocess.CalledProcessError:
+#         print(f"Error installing package: {package}")
+#         sys.exit(1)
 
-required_packages = [
-    'pandas',
-    'matplotlib',
-    'seaborn',
-    'tabulate',
-    'requests',
-    'chardet',
-    'wordcloud',
-    'openai'
-]
 
-setup_venv_and_install_packages(required_packages=required_packages)
+# # Function to check if the package is installed, else install it
+# def setup_and_install_packages(required_packages):
+#     for package in required_packages:
+#         try:
+#             print(f"Checking if {package} is installed...")
+#             subprocess.check_call([sys.executable, "-m", "pip", "show", package])
+#             print(f"{package} is already installed.")
+#         except subprocess.CalledProcessError:
+#             print(f"Package {package} not found. Installing...")
+#             install_package(package)
 
+# # Run the function to ensure all required packages are installed
+# setup_and_install_packages(required_packages)
+
+# Try importing the installed packages
 try:
     import pandas as pd
     import matplotlib.pyplot as plt
@@ -65,6 +71,8 @@ try:
 except ImportError as e:
     print(f"ImportError: {e}. Ensure all packages are installed. You may need to re-run the script.")
     sys.exit(1)
+
+
 
 
 
