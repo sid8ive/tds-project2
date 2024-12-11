@@ -459,11 +459,19 @@ encodings_to_try = ['utf-8', 'ISO-8859-1', 'unicode_escape', 'utf-16', 'latin1']
 
 
 def read_csv_with_multiple_encodings(file_path):
-    with open('file.csv', 'rb') as f:
+    with open(file_path, 'rb') as f:
         result = chardet.detect(f.read())
+    enc = result['encoding']
+    print("File encoding identified as:", enc )
     
-    print(f"File encoding identified as:", result['encoding'])
-    df = pd.read_csv(file_path, encoding=result['encoding'])
+    try:
+        
+            df = pd.read_csv(file_path, encoding=enc)
+            return df  # Return the dataframe if successful
+    except UnicodeDecodeError:
+            # If the encoding fails, continue to the next one
+            print(f"Failed to read with encoding: {enc}")
+            raise ValueError("Unable to read the file with any of the provided encodings.")
 
     '''
     for encoding in encodings_to_try:
@@ -613,7 +621,7 @@ def analyze_csv(file_path):
         readme_file.write(f"{story}\n")
         print("Added story to README.md file")
 
-    print(f"Analysis of the data is complete. Interim results saved to {analysis_file} and final story to {readme_path}")
+    print(f"Analysis of the data is complete. Interim results saved to {analyses_path} and final story to {readme_path}")
 
 
 # Start here
