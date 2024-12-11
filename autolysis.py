@@ -13,10 +13,8 @@ import sys
 #   'requests',
 #   'chardet',
 #   'wordcloud',
-#   'openai',
-#   'geopandas',
 #   'folium',
-#   'chardet'
+#   'geocoder'
 # ]
 # ///
 
@@ -24,21 +22,17 @@ import sys
 # Try importing the installed packages
 try:
     import pandas as pd
-    import numpy as np
     import matplotlib.pyplot as plt
+    from matplotlib import rcParams
     import seaborn as sns
     import requests
     import chardet
     from datetime import datetime
-    from matplotlib import rcParams
     import re
-    import logging
     import base64
     from wordcloud import WordCloud, STOPWORDS
-    import openai
-    import geopandas as gpd
     import folium
-    import chardet
+    import geocoder
     
 
     print("All packages are successfully imported.")
@@ -56,7 +50,7 @@ CONFIG = {
 
 # Set the API header and key globally for the OpenAI library reference
 HEADERS = {"Authorization": f"Bearer {CONFIG['AIPROXY_TOKEN']}", "Content-Type": "application/json"}
-openai.api_key =  {CONFIG['AIPROXY_TOKEN']}
+#openai.api_key =  {CONFIG['AIPROXY_TOKEN']}
 
 saved_charts = []
 
@@ -84,7 +78,7 @@ def generate_word_cloud(df, readme_file, output_dir, saved_files):
     plt.figure(figsize=(6, 3))
     plt.imshow(wordcloud, interpolation="bilinear")
     plt.axis('off')  # No axes for word cloud
-    plt.title("Word Cloud of data")
+    plt.title("Most used Words cloud")
 
     # Save the word cloud visualization
     generate_chart(plt, "word_cloud.png", df, output_dir, saved_files)
@@ -96,14 +90,9 @@ def generate_word_cloud(df, readme_file, output_dir, saved_files):
 
 # Function to generate a vision analyses by LLM using image as input
 # Refer https://platform.openai.com/docs/guides/vision?lang=node
-def bot_helper_image(image_path, question="As a data analyst, describe the data and text in this image."):
-    """Send an image and question to OpenAI GPT-4 model for analysis."""
-    # API Endpoint
-    endpoint = CONFIG['AIPROXY_URL']
-    
-    # Set your OpenAI API key
-    api_key = CONFIG["AIPROXY_TOKEN"]
-
+def bot_helper_image(image_path, question="As a data analyst, describe the data and text in this image", context=""):
+    """Send an image and question to OpenAI GPT-4 model for analysis."""  
+    print("Image received:",image_path)
     # Encode the image to base64
     base64_image = encode_image(image_path)
 
@@ -116,7 +105,7 @@ def bot_helper_image(image_path, question="As a data analyst, describe the data 
                 "content": [
                     {
                         "type": "text",
-                        "text": question,
+                        "text": f"{question}\n\n**Context:**\n```\n{context}\n```"
                     },
                     {
                         "type": "image_url",
@@ -130,15 +119,9 @@ def bot_helper_image(image_path, question="As a data analyst, describe the data 
         ],
     }
 
-    # # Define headers
-    # headers = {
-    #     "Authorization": f"Bearer {api_key}",
-    #     "Content-Type": "application/json",
-    # }
-
     try:
         # Make the API request
-        response = requests.post(endpoint, json=payload, headers=HEADERS)
+        response = requests.post(CONFIG["AIPROXY_URL"], json=payload, headers=HEADERS)
         print("Response from openAI on image assessment",response)
         response.raise_for_status()  # Raise an error for bad HTTP status codes
 
@@ -161,6 +144,16 @@ def encode_image(image_path):
 
 # Function to interact with LLM via AI Proxy
 def bot_helper(question, context):
+    """
+    Sends a query to an AI LLM bot and returns the response.
+
+    Args:
+        question (str): The query to be sent to the bot.
+        context (str): Additional context to provide to the bot.
+
+    Returns:
+        str: The response from the bot, or an error message if the request fails.
+    """
     try:
         print(f"Sending question to AI LLM bot: {question}")
         payload = {
@@ -181,18 +174,30 @@ def bot_helper(question, context):
         response_json = response.json()
         
         if 'choices' in response_json and response_json['choices']:
-            print("Received response from AI.")
+            print("Received response from AI LLM API service")
             return response_json['choices'][0]['message']['content']
         else:
             print("Received unexpected response format from AI.")
-            return "Unexpected response format from AI service."
+            return "Unexpected response format from AI LLM API service"
 
     except requests.exceptions.RequestException as e:
-        print(f"Error communicating with AI Proxy: {e}")
+        print(f"Error communicating with AI Proxy API: {e}")
         return f"An error occurred while fetching insights: {str(e)}"
 
 # Function to detect encoding
 def detect_encoding(file_path):
+    """
+    Detects the encoding of a file using the `chardet` library.
+
+    Args:
+        file_path (str): Path to the file to be analyzed.
+
+    Returns:
+        str: The detected encoding of the file.
+
+    Raises:
+        Exception: If the encoding cannot be detected.
+    """
     try:
         print(f"Detecting encoding for {file_path}...")
         with open(file_path, 'rb') as f:
@@ -206,19 +211,22 @@ def detect_encoding(file_path):
 
 # Function to generate charts and  visualizations 
 def generate_chart(plt, file_name, df, output_dir, saved_files):
+    print("Generating chart:",file_name)
     try:
-        full_path = os.path.join(output_dir, file_name)
-        print(f"Generating chart/graph as {file_name}...")
-        plt.tight_layout()
-        plt.savefig(full_path, bbox_inches='tight', dpi=100)
-        print(f"Chart saved at: {full_path}")
-        plt.close()
-        
-        # Add to saved files
-        if os.path.exists(full_path):
-            saved_files.append(full_path)
-        else:
-            print(f"Warning: File {full_path} does not exist after saving.")
+        if len(file_name)>0:
+            full_path = os.path.join(output_dir, file_name.replace(" ", "_"))
+            print(f"Generating chart/graph as {file_name}...")
+            plt.tight_layout()
+            plt.savefig(full_path, bbox_inches='tight', dpi=100)
+            print(f"Chart saved at: {full_path}")
+            plt.close()
+            
+            # Add to saved files
+            if os.path.exists(full_path):
+                saved_files.append(full_path)
+                return full_path
+            else:
+                print(f"Warning: File {full_path} does not exist after saving.")
     except Exception as e:
         print(f"Error generating the chart {file_name}: {e}")
 
@@ -242,6 +250,15 @@ def generate_chart(plt, file_name, df, output_dir, saved_files):
 
 # Function to create correlation matrix
 def plot_correlation_matrix(df, readme_file, output_dir, saved_files):
+    """
+    Generates a correlation matrix and saves it as an image.
+
+    Args:
+        df (pandas.DataFrame): The DataFrame containing the data.
+        readme_file (file object): The file object to write the README.md file.
+        output_dir (str): The output directory for the image.
+        saved_files (list): A list to store the paths of saved files.
+    """
     print("Starting correlation matrix analysis...")
     numeric_df = df.select_dtypes(include=['number'])
     if numeric_df.empty:
@@ -260,36 +277,59 @@ def plot_correlation_matrix(df, readme_file, output_dir, saved_files):
 
 
 def plot_outliers(df, readme_file, output_dir, saved_files):
+    """
+    Detects and visualizes outliers in the numeric columns of a DataFrame.
+
+    Args:
+        df (pandas.DataFrame): The DataFrame containing the data.
+        readme_file (file object): The file object to write the README.md file.
+        output_dir (str): The output directory for the image.
+        saved_files (list): A list to store the paths of saved files.
+    """
     print("Starting outlier analysis...")
+
+    # Filter numeric columns
     numeric_df = df.select_dtypes(include=['number'])
+    
+    # Early exit if no numeric data is found
     if numeric_df.empty:
         print("No numeric data for outlier analysis.")
         return
 
-    # Box plot
+    # Box plot for outlier detection
     plt.figure(figsize=(12, 6))
     sns.boxplot(data=numeric_df)
     plt.title("Outlier Detection (Box Plot)")
     plt.xticks(rotation=90)
-    generate_chart(plt, "outliers_boxplot.png", df, output_dir, saved_files)
+    img=generate_chart(plt, "outliers_boxplot.png", df, output_dir, saved_files)
     readme_file.write(f"![Outlier Detection (Box Plot)](outliers_boxplot.png)\n\n")
     print("Box plot saved.")
 
-    # Z-score analysis
+    # Z-score analysis for outlier detection
     z_scores = (numeric_df - numeric_df.mean()) / numeric_df.std()
-    threshold = 3  # Adjust threshold as needed
-    outliers = z_scores[z_scores.abs() > threshold]
+    outliers = z_scores[abs(z_scores) > 3]  # Detecting outliers with Z-score threshold of 3
 
+    # Display detected outliers if any
     if not outliers.empty:
         print("Outliers detected using Z-score:")
         print(outliers)
-        # Consider additional visualization or analysis for identified outliers
-
+    else:
+        print("No outliers detected using Z-score.")
+    return img
 
 
 # Function for time series analysis. USes all columns with Date or Year mentioned and formats accordingly
 # This will match columns like "birth_YEAR_CHIld", "publication_date"
 def plot_time_series(df, readme_file, output_dir, saved_files):
+    """
+    Plots time series for numeric columns against date/year columns.
+
+    Args:
+        df (pandas.DataFrame): The DataFrame containing the data.
+        readme_file (file object): The file object to write the README.md file.
+        output_dir (str): The output directory for the images.
+        saved_files (list): A list to store the paths of saved files.
+    """
     print("Starting time series analysis...")
 
     time_series_columns = [col for col in df.columns if re.search(r'(year|date)', col.lower())]
@@ -323,19 +363,30 @@ def plot_time_series(df, readme_file, output_dir, saved_files):
 
 # Function for geographic analysis. Uses country, city, longitude, latitude column names
 # case insitive and uses any column that may contain the keywords like birth_CItY or city_LONGitude
+
+
 def plot_geographic_analysis(df, readme_file, output_dir, saved_files):
-    print("Starting geographic analysis...")
+    """
+    Performs geographic analysis and creates visualizations.
+
+    Args:
+        df (pandas.DataFrame): The DataFrame containing the data.
+        readme_file (file object): The file object to write the README.md file.
+        output_dir (str): The output directory for the images.
+        saved_files (list): A list to store the paths of saved files.
+    """
+    print("Starting geographic analysis...")    
+    
 
     # Check for latitude and longitude columns
     latitude_cols = [col for col in df.columns if 'latitude' in col.lower()]
     longitude_cols = [col for col in df.columns if 'longitude' in col.lower()]
 
     if latitude_cols and longitude_cols:
-        # Assuming the first match is the correct one
+        # Latitude/Longitude scatter plot
         latitude_col = latitude_cols[0]
         longitude_col = longitude_cols[0]
 
-        # Standard scatter plot
         plt.figure(figsize=(10, 8))
         numeric_column = df.select_dtypes(include=['number']).columns[0] if not df.select_dtypes(include=['number']).empty else 'Count'
         sns.scatterplot(data=df, x=longitude_col, y=latitude_col, hue=numeric_column)
@@ -343,39 +394,56 @@ def plot_geographic_analysis(df, readme_file, output_dir, saved_files):
         plt.legend(title=numeric_column)
         generate_chart(plt, "geographic_analysis.png", df, output_dir, saved_files)
         readme_file.write(f"![Geographic Analysis](geographic_analysis.png)\n\n")
-        print("Geographic plot saved.")
-
-    # Check for city and country columns
-    city_cols = [col for col in df.columns if 'city' in col.lower()]
-    country_cols = [col for col in df.columns if 'country' in col.lower()]
-
-    if city_cols and country_cols:
-        # Assuming the first match is the correct one
-        city_col = city_cols[0]
-        country_col = country_cols[0]
-
-        # Geocode cities and countries (replace with your preferred geocoding service)
-        gdf = gpd.GeoDataFrame(df)
-        gdf['geometry'] = gpd.GeoSeries.from_xy(gdf['Longitude'], gdf['Latitude'])  # Assuming you have geocoded the data
-
-        # Create a map
-        m = folium.Map(location=[40, 0], zoom_start=2)
-
-        # Add markers to the map
-        for index, row in gdf.iterrows():
-            folium.Marker([row['Latitude'], row['Longitude']], popup=row['City']).add_to(m)
-
-        # Save the map as an HTML file
-        m.save('geographic_map.html')
-        readme_file.write(f"Geographic analysis visualized in `geographic_map.html`\n\n")
-        print("Geographic map saved.")
-
+        print("Geographic scatter plot saved.")
     else:
-        print("No suitable geographic columns found.")
-        return None
+        # Check for city, country, or address columns
+        geo_cols = [col for col in df.columns if any(kw in col.lower() for kw in ['city', 'country', 'address'])]
+
+        if geo_cols:
+            # Assuming the first match is the correct one
+            geo_col = geo_cols[0]
+            print(f"No latitude/longitude columns found. Using {geo_col} column for mapping...")
+            g = geocoder.osm
+            # Geocode the column to get coordinates
+            df['Coordinates'] = df[geo_col].apply(
+                lambda x: geocoder.osm(x, user_agent="geo_analysis (your_email@example.com)").point if geocoder.osm(x, user_agent="geo_analysis (your_email@example.com)") else None
+            )
+            df[['Latitude', 'Longitude']] = df['Coordinates'].apply(
+                lambda x: pd.Series({'Latitude': x.latitude, 'Longitude': x.longitude}) if x else pd.Series({'Latitude': None, 'Longitude': None})
+            )
+
+            # Drop rows with missing geocoded data
+            geocoded_df = df.dropna(subset=['Latitude', 'Longitude'])
+            if geocoded_df.empty:
+                print("No valid geocoded locations found.")
+                return
+
+            # Create a folium map
+            m = folium.Map(location=[20, 0], zoom_start=2)
+            for _, row in geocoded_df.iterrows():
+                folium.Marker([row['Latitude'], row['Longitude']],
+                              popup=row[geo_col]).add_to(m)
+
+            # Save the map as an HTML file
+            map_file = os.path.join(output_dir, "geographic_map.html")
+            m.save(map_file)
+            readme_file.write(f"Geographic analysis visualized in `geographic_map.html`\n\n")
+            print("Geographic map saved at:", map_file)
+        else:
+            print("No suitable columns for geographic analysis (latitude/longitude or city/country/address).")
+
 
 # Function for categorical data analysis
 def plot_categorical_data(df, readme_file, output_dir,saved_files):
+    """
+    Visualizes the distribution of categorical data.
+
+    Args:
+        df (pandas.DataFrame): The DataFrame containing the data.
+        readme_file (file object): The file object to write the README.md file.
+        output_dir (str): The output directory for the images.
+        saved_files (list): A list to store the paths of saved files.
+    """
     print("Starting categorical data analysis...")
     non_numeric_df = df.select_dtypes(exclude=['number'])
     for col in non_numeric_df.columns:
@@ -493,12 +561,12 @@ def read_csv_with_multiple_encodings(file_path):
 
 def analyze_csv(file_path):
     try:
-        print(f"Reading CSV file: {file_path}")
+        print(f"Reading .csv file: {file_path}")
         encoding = detect_encoding(file_path)
         df = read_csv_with_multiple_encodings(file_path)
-        print(f"Successfully read CSV with {len(df)} rows and {len(df.columns)} columns.")
+        print(f"Successfully loaded the csv file")
     except Exception as e:
-        print(f"Error reading CSV file: {e}")
+        print(f"Error reading .csv file: {e}")
         sys.exit(1)
 
     #Summary Statistics (for both numeric and categorical columns)
@@ -523,21 +591,22 @@ def analyze_csv(file_path):
     # Use the same directory as of the input CSV file
     output_dir = os.path.dirname(file_path)
     readme_path = os.path.join(output_dir, "README.md")
-    analyses_path = os.path.join(output_dir, "analyses.md")
+    analyses_path = os.path.join(output_dir, "data_analyses.md")
+
     print(f"Output directory set to: {output_dir}")
 
-    # Track successfully created files. This is to ensure that final document has only generated file and no empty paths
+    # Following variable to track successfully created files. This is to ensure that final document has only generated file and no empty paths
     saved_files = []  
 
     with open(analyses_path, "w") as analysis_file:
 
         analysis_file.write("# Automated Data Assessment Report\n\n")
-        analysis_file.write(f"## Overview\nFile: {os.path.basename(file_path)}\n\n")
+        analysis_file.write(f"## Overview\nFile name: {os.path.basename(file_path)}\n\n")
         analysis_file.write("## Summarization\n")
-        analysis_file.write(f"The CSV file has {len(df)} rows and {len(df.columns)} columns.\n\n")
+        analysis_file.write(f"The {os.path.basename(file_path)} file has {len(df)} rows and {len(df.columns)} columns.\n\n")
 
         # Write details summary as Markdown table
-        analysis_file.write("### Summary Statistics of CSV file\n")
+        analysis_file.write("### Summary Statistics of the file\n")
         details_summary_str = details_summary.to_markdown()  # Converts the DataFrame to Markdown format
         analysis_file.write(details_summary_str + "\n\n")
 
@@ -545,15 +614,19 @@ def analyze_csv(file_path):
         analysis_file.write("## Missing values report\n")
         missing_info_str = missing_info.to_markdown()  # Converts the DataFrame to Markdown format
         analysis_file.write(missing_info_str + "\n\n")
-
+        
         # Word Cloud
         analysis_file.write("### Word Cloud Analysis\n")
         img=generate_word_cloud(df, analysis_file, output_dir, saved_files)
         image_full_path = os.path.join(output_dir, img)
-        print("Analysing image using AI bot")
-        analysis_file.write(bot_helper_image(image_full_path))
+        print(img, image_full_path)
         analysis_file.write("This word cloud visualizes the most frequent words from the content\n")
-
+        print("Analysing generated image using AI LLM API service")
+        aitxt=bot_helper_image(image_full_path)
+        print(f"Analyses for the {image_full_path} file is:",aitxt)
+        analysis_file.write(aitxt+"\n")
+        
+        
         # Correlation Matrix
         analysis_file.write("### Correlation Analysis\n")
         correlation = plot_correlation_matrix(df, analysis_file, output_dir, saved_files)
@@ -563,21 +636,22 @@ def analyze_csv(file_path):
 
         # Outliers
         analysis_file.write("### Outlier Detection\n")
-        plot_outliers(df, analysis_file, output_dir, saved_files)
+        img=plot_outliers(df, analysis_file, output_dir, saved_files)
         analysis_file.write("This boxplot shows the distribution of values for numerical features and highlights potential outliers\n")        
         analysis_file.write("Outlier insights:\n")
-        analysis_file.write(f"- {bot_helper('Analyze the outliers in the data.', 'Outlier plot generated')}\n\n")
-
+        analysis_file.write(f"- {bot_helper_image(img, 'Analyze the outliers in the data', 'Use these sample 10 records from the overall data to give some insight on this aspect - ' + df.head(10).to_string())}\n\n")
+        
         # Time Series
         analysis_file.write("### Time Series Analysis\n")
         t = plot_time_series(df, analysis_file, output_dir, saved_files)
         if t!=None:
             analysis_file.write("This line plot shows trends over time for numerical data with a `Date` column\n")            
             analysis_file.write("Time series insights:\n")
-            analysis_file.write(f"- {bot_helper('Analyze trends or patterns in the time series data.', 'Time series plot generated')}\n\n")
+            analysis_file.write(f"- {bot_helper('Analyze trends or patterns in the time series data','Use these sample 10 records from the overall data to give some insights on this aspect - '+df.head(10).to_string())}\n\n")
         else:
             analysis_file.write("### No Time Series Analysis data found. Skip this section\n")
-
+        
+        '''
         # Geographic Analysis
         analysis_file.write("### Geographic Distribution\n")
         g = plot_geographic_analysis(df, analysis_file, output_dir, saved_files)
@@ -587,7 +661,7 @@ def analyze_csv(file_path):
             analysis_file.write(f"- {bot_helper('What can you say about the geographic distribution?', 'Geographic plot generated')}\n\n")
         else:
             analysis_file.write("### No Geographic Distribution data found. Skip this section\n")
-
+        '''
         # Categorical Data
         analysis_file.write("### Categorical Data Distribution\n")
         analysis_file.write("The following plots show the distribution of categorical data:\n")
@@ -597,17 +671,17 @@ def analyze_csv(file_path):
 
         # General Insights
         analysis_context = f"Dataset summary statistics:\n{details_summary}\nMissing values:\n{missing_values}"
-        analysis_response = bot_helper("Analyze the dataset and provide insights.", analysis_context)
+        analysis_response = bot_helper("Analyze the dataset and provide insights", analysis_context)
         analysis_file.write("## General Insights\n")
         analysis_file.write(f"{analysis_response}\n\n")
 
         # Numeric Insights
         numeric_context = f"Numeric columns summary:\n{df.select_dtypes(include=['number']).describe()}"
-        numeric_response = bot_helper("Provide insights about numeric columns.", numeric_context)
+        numeric_response = bot_helper("Provide insights about numeric columns", numeric_context)
         analysis_file.write("## Numeric Insights\n")
         analysis_file.write(f"{numeric_response}\n\n")        
 
-
+    '''
     # Now write the story to README.md, integrating images and captions
     with open(readme_path, "w") as readme_file, open(analyses_path, "r") as analysis_file:
         analyses_content = analysis_file.read()
@@ -619,17 +693,17 @@ def analyze_csv(file_path):
             story_context
         )
         #"   Focus on four aspects:  a) The data you received b) The analysis you carried out c) The insights you discovered d) The implications of findings."
-        readme_file.write("#### *Every story is complicated until it finds the right storyteller — Anonymous*\n\n\n")
+        readme_file.write("*Every story is complicated until it finds the right storyteller — Anonymous*\n\n\n")
         readme_file.write(f"{story}\n")
         print("Added story to README.md file")
 
     print(f"Analysis of the data is complete. Interim results saved to {analyses_path} and final story to {readme_path}")
-
+    '''
 
 # Start here
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print("The usage format to run this file: uv run autolysis.py <data.csv file>")
+        print("Incorrect usage format. The usage format to run this file is: uv run autolysis.py <data.csv file>")
         sys.exit(1)
     dataset_path = sys.argv[1]
     print(f"Starting data analysis on file {dataset_path}...")
