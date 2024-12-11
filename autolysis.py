@@ -12,50 +12,18 @@ import sys
 #   'requests',
 #   'chardet',
 #   'wordcloud',
-#   'openai'
+#   'openai',
+#   'geopandas',
+#   'folium',
+#   'chardet'
 # ]
 # ///
 
-# # List of required packages
-# required_packages = [
-#     'pandas',
-#     'matplotlib',
-#     'seaborn',
-#     'tabulate',
-#     'requests',
-#     'chardet',
-#     'wordcloud',
-#     'openai'
-# ]
-
-# # Function to install a package
-# def install_package(package):
-#     try:
-#         print(f"Attempting to install {package}...")
-#         subprocess.check_call([sys.executable, "-m", "pip", "install", package])
-#         print(f"Successfully installed {package}.")
-#     except subprocess.CalledProcessError:
-#         print(f"Error installing package: {package}")
-#         sys.exit(1)
-
-
-# # Function to check if the package is installed, else install it
-# def setup_and_install_packages(required_packages):
-#     for package in required_packages:
-#         try:
-#             print(f"Checking if {package} is installed...")
-#             subprocess.check_call([sys.executable, "-m", "pip", "show", package])
-#             print(f"{package} is already installed.")
-#         except subprocess.CalledProcessError:
-#             print(f"Package {package} not found. Installing...")
-#             install_package(package)
-
-# # Run the function to ensure all required packages are installed
-# setup_and_install_packages(required_packages)
 
 # Try importing the installed packages
 try:
     import pandas as pd
+    import numpy as np
     import matplotlib.pyplot as plt
     import seaborn as sns
     import requests
@@ -63,37 +31,36 @@ try:
     from datetime import datetime
     from matplotlib import rcParams
     import re
+    import logging
     import base64
-    from wordcloud import WordCloud
+    from wordcloud import WordCloud, STOPWORDS
     import openai
+    import geopandas as gpd
+    import folium
+    import chardet
+    
 
     print("All packages are successfully imported.")
 except ImportError as e:
     print(f"ImportError: {e}. Ensure all packages are installed. You may need to re-run the script.")
     sys.exit(1)
 
-
-
-
-
-#client = OpenAI()
-
 # Configuration Section
 CONFIG = {
-    "AIPROXY_URL": "https://aiproxy.sanand.workers.dev/openai/v1/chat/completions",
     #"AIPROXY_URL": "https://api.openai.com/v1/chat/completions",
+    "AIPROXY_URL": "https://aiproxy.sanand.workers.dev/openai/v1/chat/completions",    
     "AIPROXY_TOKEN": os.getenv("AIPROXY_TOKEN")
 }
 
+
+# Set the API header and key globally for the OpenAI library reference
 HEADERS = {"Authorization": f"Bearer {CONFIG['AIPROXY_TOKEN']}", "Content-Type": "application/json"}
+openai.api_key =  {CONFIG['AIPROXY_TOKEN']}
 
 saved_charts = []
 
-# Set the API key globally for the OpenAI library
-openai.api_key =  {CONFIG['AIPROXY_TOKEN']}
 
-
-# Function to generate a word cloud
+# Function to generate a word cloud with explanations for each step
 def generate_word_cloud(df, readme_file, output_dir, saved_files):
     print("Starting word cloud analysis...")
 
@@ -102,12 +69,15 @@ def generate_word_cloud(df, readme_file, output_dir, saved_files):
     for col in df.select_dtypes(include=['object']).columns:
         all_text += " " + " ".join(df[col].dropna().astype(str))
 
-    # Remove URLs using regular expression
-    all_text = re.sub(r'http[s]?://\S+', '', all_text)  # Remove URLs
-    all_text = re.sub(r'\b\w{1,2,3}\b', '', all_text)   # Remove words shorter than 3 characters
+    # Combine and clean text
+    all_text = " ".join(df.select_dtypes(include=['object']).apply(lambda x: ' '.join(x.dropna().astype(str)), axis=0))
+    all_text = re.sub(r'http[s]?://\S+', '', all_text.lower())
+    all_text = re.sub(r'[^\w\s]', '', all_text)  # Remove punctuation
+    all_text = re.sub(r'\b\w{1,2,3}\b', '', all_text)  # Remove short words upto 3 characters
+    stopwords = set(STOPWORDS)
 
     # Generate the word cloud
-    wordcloud = WordCloud(width=400, height=200, background_color="white", max_words=200).generate(all_text)
+    wordcloud = WordCloud(width=400, height=200, background_color="white", max_words=200, stopwords=stopwords).generate(all_text)
 
     # Plot the word cloud
     plt.figure(figsize=(6, 3))
@@ -123,13 +93,10 @@ def generate_word_cloud(df, readme_file, output_dir, saved_files):
 
 
 
-def encode_image(image_path):
-    """Encode an image to a base64 string."""
-    with open(image_path, "rb") as image_file:
-        return base64.b64encode(image_file.read()).decode("utf-8")
-
-def bot_helper_image(image_path, question="Describe the data and text in this image."):
-    """Send an image and question to OpenAI GPT-4 Vision model for analysis."""
+# Function to generate a vision analyses by LLM using image as input
+# Refer https://platform.openai.com/docs/guides/vision?lang=node
+def bot_helper_image(image_path, question="As a data analyst, describe the data and text in this image."):
+    """Send an image and question to OpenAI GPT-4 model for analysis."""
     # API Endpoint
     endpoint = CONFIG['AIPROXY_URL']
     
@@ -141,7 +108,7 @@ def bot_helper_image(image_path, question="Describe the data and text in this im
 
     # Create the payload
     payload = {
-        "model": "gpt-4o-mini",  # Ensure this is the correct vision model
+        "model": "gpt-4o-mini",  # openai uses the same model for vision
         "messages": [
             {
                 "role": "user",
@@ -161,16 +128,16 @@ def bot_helper_image(image_path, question="Describe the data and text in this im
         ],
     }
 
-    # Define headers
-    headers = {
-        "Authorization": f"Bearer {api_key}",
-        "Content-Type": "application/json",
-    }
+    # # Define headers
+    # headers = {
+    #     "Authorization": f"Bearer {api_key}",
+    #     "Content-Type": "application/json",
+    # }
 
     try:
         # Make the API request
-        response = requests.post(endpoint, json=payload, headers=headers)
-        print(response)
+        response = requests.post(endpoint, json=payload, headers=HEADERS)
+        print("Response from openAI on image assessment",response)
         response.raise_for_status()  # Raise an error for bad HTTP status codes
 
         # Parse and return the response
@@ -183,15 +150,19 @@ def bot_helper_image(image_path, question="Describe the data and text in this im
     except requests.exceptions.RequestException as e:
         return f"Error: {e}"
 
-
+#encoding the image to base64. Used by bot_helper_image function
+def encode_image(image_path):
+    """Encode an image to a base64 string."""
+    with open(image_path, "rb") as image_file:
+        return base64.b64encode(image_file.read()).decode("utf-8")
 
 
 # Function to interact with LLM via AI Proxy
 def bot_helper(question, context):
     try:
-        print(f"Sending query to AI LLM bot: {question}")
+        print(f"Sending question to AI LLM bot: {question}")
         payload = {
-            "model": "gpt-4o-mini",  # Adjust based on the actual model you're allowed to use
+            "model": "gpt-4o-mini",  # 
             "messages": [
                 {
                     "role": "system",
@@ -231,7 +202,7 @@ def detect_encoding(file_path):
         print(f"Error detecting file encoding: {e}")
         sys.exit(1)
 
-# Function to save visualizations with quality check
+# Function to generate charts and  visualizations 
 def generate_chart(plt, file_name, df, output_dir, saved_files):
     try:
         full_path = os.path.join(output_dir, file_name)
@@ -285,63 +256,120 @@ def plot_correlation_matrix(df, readme_file, output_dir, saved_files):
     print("Correlation heatmap saved.")
     return correlation
 
-# Function to visualize outliers
+
 def plot_outliers(df, readme_file, output_dir, saved_files):
     print("Starting outlier analysis...")
     numeric_df = df.select_dtypes(include=['number'])
     if numeric_df.empty:
         print("No numeric data for outlier analysis.")
         return
+
+    # Box plot
     plt.figure(figsize=(12, 6))
     sns.boxplot(data=numeric_df)
-    plt.title("Outlier Detection")
-    
-    # Rotate the x-axis labels to be vertical
+    plt.title("Outlier Detection (Box Plot)")
     plt.xticks(rotation=90)
-    
-    # Save the visualization
-    generate_chart(plt, "outliers.png", df, output_dir, saved_files)
-    readme_file.write(f"![Outlier Detection](outliers.png)\n\n")
-    print("Outlier plot saved.")
+    generate_chart(plt, "outliers_boxplot.png", df, output_dir, saved_files)
+    readme_file.write(f"![Outlier Detection (Box Plot)](outliers_boxplot.png)\n\n")
+    print("Box plot saved.")
 
-# Function for time series analysis
-def plot_time_series(df, readme_file, output_dir,saved_files):
+    # Z-score analysis
+    z_scores = (numeric_df - numeric_df.mean()) / numeric_df.std()
+    threshold = 3  # Adjust threshold as needed
+    outliers = z_scores[z_scores.abs() > threshold]
+
+    if not outliers.empty:
+        print("Outliers detected using Z-score:")
+        print(outliers)
+        # Consider additional visualization or analysis for identified outliers
+
+
+
+# Function for time series analysis. USes all columns with Date or Year mentioned and formats accordingly
+# This will match columns like "birth_YEAR_CHIld", "publication_date"
+def plot_time_series(df, readme_file, output_dir, saved_files):
     print("Starting time series analysis...")
-    if 'Date' in df.columns:
+
+    time_series_columns = [col for col in df.columns if re.search(r'(year|date)', col.lower())]
+
+    for time_col in time_series_columns:
         try:
-            df['Date'] = pd.to_datetime(df['Date'])
-            df = df.sort_values('Date')
+            # Convert to datetime, handling different formats as needed
+            if 'Year' in time_col:
+                df[time_col] = pd.to_datetime(df[time_col], format='%Y')
+            else:
+                df[time_col] = pd.to_datetime(df[time_col])
+
+            df = df.sort_values(by=time_col)
+
             numeric_columns = df.select_dtypes(include=['number']).columns
             if numeric_columns.empty:
-                print("No numeric columns for time series analysis.")
-                return
-            plt.figure(figsize=(12, 6))
-            sns.lineplot(data=df, x='Date', y=numeric_columns[0])
-            plt.title(f"Time Series Analysis for {numeric_columns[0]}")
-            plt.legend([numeric_columns[0]], loc='upper left')  # Add legend
-            generate_chart(plt, "time_series.png", df, output_dir,saved_files)
-            readme_file.write(f"![Time Series Analysis](time_series.png)\n\n")
-            print("Time series plot saved.")
-        except Exception as e:
-            print(f"Error in Time Series Analysis: {e}")
-    else:
-        print("Date column not found for time series analysis.")
-        return None
+                print(f"No numeric columns to plot against {time_col}.")
+                continue
 
-# Function for geographic analysis
-def plot_geographic_analysis(df, readme_file, output_dir,saved_files):
+            for numeric_col in numeric_columns:
+                plt.figure(figsize=(12, 6))
+                sns.lineplot(data=df, x=time_col, y=numeric_col)
+                plt.title(f"Time Series Analysis for {numeric_col} over {time_col}")
+                plt.legend([numeric_col], loc='upper left')  # Add legend
+                generate_chart(plt, f"time_series_{time_col}_{numeric_col}.png", df, output_dir, saved_files)
+                readme_file.write(f"![Time Series Analysis for {numeric_col} over {time_col}](time_series_{time_col}_{numeric_col}.png)\n\n")
+                print(f"Time series plot for {numeric_col} over {time_col} saved.")
+
+        except Exception as e:
+            print(f"Error in Time Series Analysis for {time_col}: {e}")
+
+# Function for geographic analysis. Uses country, city, longitude, latitude column names
+# case insitive and uses any column that may contain the keywords like birth_CItY or city_LONGitude
+def plot_geographic_analysis(df, readme_file, output_dir, saved_files):
     print("Starting geographic analysis...")
-    if 'Latitude' in df.columns and 'Longitude' in df.columns:
+
+    # Check for latitude and longitude columns
+    latitude_cols = [col for col in df.columns if 'latitude' in col.lower()]
+    longitude_cols = [col for col in df.columns if 'longitude' in col.lower()]
+
+    if latitude_cols and longitude_cols:
+        # Assuming the first match is the correct one
+        latitude_col = latitude_cols[0]
+        longitude_col = longitude_cols[0]
+
+        # Standard scatter plot
         plt.figure(figsize=(10, 8))
         numeric_column = df.select_dtypes(include=['number']).columns[0] if not df.select_dtypes(include=['number']).empty else 'Count'
-        sns.scatterplot(data=df, x='Longitude', y='Latitude', hue=numeric_column)
+        sns.scatterplot(data=df, x=longitude_col, y=latitude_col, hue=numeric_column)
         plt.title("Geographic Analysis")
         plt.legend(title=numeric_column)
-        generate_chart(plt, "geographic_analysis.png", df, output_dir,saved_files)
+        generate_chart(plt, "geographic_analysis.png", df, output_dir, saved_files)
         readme_file.write(f"![Geographic Analysis](geographic_analysis.png)\n\n")
         print("Geographic plot saved.")
+
+    # Check for city and country columns
+    city_cols = [col for col in df.columns if 'city' in col.lower()]
+    country_cols = [col for col in df.columns if 'country' in col.lower()]
+
+    if city_cols and country_cols:
+        # Assuming the first match is the correct one
+        city_col = city_cols[0]
+        country_col = country_cols[0]
+
+        # Geocode cities and countries (replace with your preferred geocoding service)
+        gdf = gpd.GeoDataFrame(df)
+        gdf['geometry'] = gpd.GeoSeries.from_xy(gdf['Longitude'], gdf['Latitude'])  # Assuming you have geocoded the data
+
+        # Create a map
+        m = folium.Map(location=[40, 0], zoom_start=2)
+
+        # Add markers to the map
+        for index, row in gdf.iterrows():
+            folium.Marker([row['Latitude'], row['Longitude']], popup=row['City']).add_to(m)
+
+        # Save the map as an HTML file
+        m.save('geographic_map.html')
+        readme_file.write(f"Geographic analysis visualized in `geographic_map.html`\n\n")
+        print("Geographic map saved.")
+
     else:
-        print("Latitude and Longitude columns are missing.")
+        print("No suitable geographic columns found.")
         return None
 
 # Function for categorical data analysis
@@ -361,8 +389,10 @@ def plot_categorical_data(df, readme_file, output_dir,saved_files):
             """
             new_labels = []
             for label in labels:
+                label_str = str(label)  # Ensure label is a string
+
                 split_label = "\n".join(
-                    [label[i:i + max_chars_per_line] for i in range(0, len(label), max_chars_per_line)]
+                    [label_str[i:i + max_chars_per_line] for i in range(0, len(label_str), max_chars_per_line)]
                 )
                 new_labels.append(split_label)
             ax.set_xticks(range(len(new_labels)))
@@ -423,10 +453,19 @@ def plot_categorical_data(df, readme_file, output_dir,saved_files):
             readme_file.write(f"![{col} Bottom 15 Distribution]({col}_bottom_15_distribution.png)\n\n")
             print(f"Saved bottom 15 distribution for {col}.")
 
-# List of potential encodings to check
+# List of potential encodings to check, since we may not know provided csv file encoding
 encodings_to_try = ['utf-8', 'ISO-8859-1', 'unicode_escape', 'utf-16', 'latin1']
 
+
+
 def read_csv_with_multiple_encodings(file_path):
+    with open('file.csv', 'rb') as f:
+        result = chardet.detect(f.read())
+    
+    print(f"File encoding identified as:", result['encoding'])
+    df = pd.read_csv(file_path, encoding=result['encoding'])
+
+    '''
     for encoding in encodings_to_try:
         try:
             # Try reading the CSV with the current encoding
@@ -439,6 +478,7 @@ def read_csv_with_multiple_encodings(file_path):
             print(f"Failed to read with encoding: {encoding}")
             continue
     raise ValueError("Unable to read the file with any of the provided encodings.")
+    '''
 
 
 def analyze_csv(file_path):
@@ -454,7 +494,7 @@ def analyze_csv(file_path):
     #Summary Statistics (for both numeric and categorical columns)
     details_summary = df.describe(include='all')
 
-    print(f"Shape of the DataFrame: {df.shape}")
+    #print(f"Shape of the DataFrame: {df.shape}")
 
     # Missing Values Count
     missing_values = df.isna().sum()
@@ -470,13 +510,14 @@ def analyze_csv(file_path):
 
     print("Generated summary statistics and checked for missing values.")
 
-    # Use the directory of the input CSV file
+    # Use the same directory as of the input CSV file
     output_dir = os.path.dirname(file_path)
     readme_path = os.path.join(output_dir, "README.md")
     analyses_path = os.path.join(output_dir, "analyses.md")
     print(f"Output directory set to: {output_dir}")
 
-    saved_files = []  # Track successfully created files
+    # Track successfully created files. This is to ensure that final document has only generated file and no empty paths
+    saved_files = []  
 
     with open(analyses_path, "w") as analysis_file:
 
@@ -509,7 +550,6 @@ def analyze_csv(file_path):
         if correlation is not None:
             analysis_file.write("This heatmap visualizes the correlation between numerical features in the dataset:\n")        
             analysis_file.write(f"Correlation insights:\n- {bot_helper('Provide insights on the correlation matrix.', str(correlation))}\n\n")
-
 
         # Outliers
         analysis_file.write("### Outlier Detection\n")
@@ -564,24 +604,23 @@ def analyze_csv(file_path):
         story_context = f"Dataset Analysis:\n{analyses_content}"
         story = bot_helper(
             "Generate a creative but data-driven story based on the analysis. It should be in markdown format, well-structured, using headers, lists, and emphasis appropriately. "+
-            "The narrative should clearly describes the data, analysis performed, insights gained, and implications. Include relevant images from the analysis "
+            "The narrative should clearly describes the data to users, analysis performed, insights or anomalies identified, and implications. Include relevant images from the analysis "
             "and describe them in the story to make it visually engaging. Use external hyperlinks and references to strengthen the storyline",
             story_context
         )
         #"   Focus on four aspects:  a) The data you received b) The analysis you carried out c) The insights you discovered d) The implications of findings."
         readme_file.write("#### *Every story is complicated until it finds the right storyteller — Anonymous*\n\n\n")
         readme_file.write(f"{story}\n")
-        print("Added story to README.md.")
+        print("Added story to README.md file")
 
-    print("Analysis complete! Results saved to analyses.md and story to README.md in the same directory as the input CSV file.")
-
+    print(f"Analysis of the data is complete. Interim results saved to {analysis_file} and final story to {readme_path}")
 
 
 # Start here
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print("The usage format of this file: uv run autolysis.py <dataset.csv>")
+        print("The usage format to run this file: uv run autolysis.py <data.csv file>")
         sys.exit(1)
     dataset_path = sys.argv[1]
-    print(f"Starting analysis on {dataset_path}...")
+    print(f"Starting data analysis on file {dataset_path}...")
     analyze_csv(dataset_path)
