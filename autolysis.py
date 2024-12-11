@@ -3,6 +3,7 @@ import subprocess
 import sys
 
 # /// script
+# requires-python = ">=3.11"
 # dependencies = [
 #   'requests',
 #   'pandas',
@@ -120,7 +121,8 @@ def bot_helper_image(image_path, question="As a data analyst, describe the data 
                     {
                         "type": "image_url",
                         "image_url": {
-                            "url": f"data:image/jpeg;base64,{base64_image}"
+                            "url": f"data:image/jpeg;base64,{base64_image}",
+                            "detail": "low"
                         },
                     },
                 ],
