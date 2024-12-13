@@ -40,7 +40,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 
 # Configuration Section
 CONFIG = {
-    "AIPROXY_URL": "https://aiproxy.sanand.workers.dev/openai/v1/chat/completions/deletme",
+    "AIPROXY_URL": "https://aiproxy.sanand.workers.dev/openai/v1/chat/completions",
     "AIPROXY_TOKEN": os.getenv("AIPROXY_TOKEN"),
     "LLM_MODEL": "gpt-4o-mini",    
     "OUTLIER_THRESHOLD": 1.5,
