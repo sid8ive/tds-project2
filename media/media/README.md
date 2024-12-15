@@ -52,6 +52,7 @@ The **Cluster Analysis** delineates groups within the dataset, indicating simila
 
 ### Principal Component Analysis
 ![Principal Component Analysis](principal_component_analysis.png)
+
 The **PCA** visualization helps elucidate the relationships between the dataset's multiple variables, aiding in understanding complex media attributes.
 
 ## Insights and Anomalies
