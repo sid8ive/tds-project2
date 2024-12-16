@@ -87,6 +87,8 @@ def check_empty_dataframe(df, analysis_type):
       logging.warning(f"Dataframe is empty, skipping {analysis_type} analysis")
       return create_markdown_comment("No data available", analysis_type), True
   return None, False #returning False for success and None
+
+
 def select_relevant_columns(df, analysis_type, excluded_keywords=None, sample_size=None, as_markdown=False, columns=None):
   """
   Selects relevant columns from a DataFrame based on analysis type and keywords.
@@ -132,12 +134,18 @@ def select_relevant_columns(df, analysis_type, excluded_keywords=None, sample_si
     return pd.DataFrame()  # Return empty dataframe
 
   if sample_size and as_markdown and len(selected_df) > 0:
-    return f"Sample data:\n{selected_df.sample(min(sample_size, len(selected_df))).fillna('').to_markdown(index=False)}"
+      
+    def format_cell(value):
+          if isinstance(value, str) and value.startswith(('http://', 'https://')): #check if string starts with URL.
+             return f'<img src="{value}" alt="Image" width="100" />' # HTML img tag for URL's
+          else:
+             return str(value) #convert other data types to string if required.
+    formatted_df = selected_df.sample(min(sample_size, len(selected_df))).fillna('').applymap(format_cell)
+    return f"Sample data:\n{formatted_df.to_markdown(index=False)}"
   elif as_markdown and len(selected_df) == 0:
       return "No relevant data to show"
   else:
       return selected_df
-
 
 def create_markdown_comment(message, header=None, style="comment"):
    """Helper function to format comments in markdown"""
@@ -1047,8 +1055,7 @@ def analyze_csv_data(csv_file):
     except Exception as e:
          logging.error(f"Error during the analysis process: {e}")
          return None, None, None, None
-
-# Now write the story to README.md, integrating images and captions
+    
 def tell_me_a_story(analyses, analyses_path, saved_files, ai_insights):
     """
     Narrates a story based on the analysis.
@@ -1057,7 +1064,11 @@ def tell_me_a_story(analyses, analyses_path, saved_files, ai_insights):
     try:
         with open(readme_path, "w") as readme_file:
             story_context = f"Statistical data in markup:\n{analyses}"
-            story_context += f"AI generated insights:\n {ai_insights}" if ai_insights else ""
+            #story_context += f"AI generated insights:\n {ai_insights}" if ai_insights else ""  # Removed AI insights from here
+            
+            readme_file.write("*Every story is complicated until it finds the right storyteller — Anonymous*\n\n\n")
+            readme_file.write(f"{story_context}\n\n{ai_insights}") #added AI insights at the start
+
             try:
                 story = ai_bot_helper(
                     "Generate a creative, yet data-driven and professional story based on the provided content and graphs. The narrative should focus on four key aspects:" +
@@ -1066,32 +1077,21 @@ def tell_me_a_story(analyses, analyses_path, saved_files, ai_insights):
                     " 3) insights and anomalies identified by you, explaining them clearly and" +
                     " 4) the implications of your findings." +
                     " Include relevant images from the provided content, using the image descriptions and your analysis to make the story engaging and provide insights on the images. Also mention any data limitations or biases. Use external hyperlinks and references to strengthen the storyline.",
-                    story_context,
+                    analyses, #only pass static analysis
                      )
                 if story:
                     if not isinstance(story, str):
-                        logging.error("AI bot did not return markdown output")
-                        #fall back to static content
-                        readme_file.write("*Every story is complicated until it finds the right storyteller — Anonymous*\n\n\n")
-                        readme_file.write(f"{analyses}\n")
-                        logging.info("Added story to README.md file, using static content since AI bot did not return markdown output")
+                        logging.error("AI bot did not return markdown output, but proceeding with static markdown")
                         return readme_path
-                    readme_file.write("*Every story is complicated until it finds the right storyteller — Anonymous*\n\n\n")
                     readme_file.write(f"{story}\n")
                     logging.info("Added story to README.md file")
                     return readme_path
                 else:
-                    logging.error(f"Unable to generate a story by AI Bot. Static content will be used")
-                    #fall back to static content
-                    readme_file.write("*Every story is complicated until it finds the right storyteller — Anonymous*\n\n\n")
-                    readme_file.write(f"{analyses}\n")
+                    logging.error(f"Unable to generate a story by AI Bot. Static content with all available insights will be used")
                     logging.info("Added story to README.md file, using static content since AI bot returned None")
                     return readme_path
             except Exception as e:
                 logging.error(f"Error during AI bot call in tell_me_a_story function: {e}, will use static analysis.")
-                #fall back to static content
-                readme_file.write("*Every story is complicated until it finds the right storyteller — Anonymous*\n\n\n")
-                readme_file.write(f"{analyses}\n")
                 logging.info("Added story to README.md file, using static content due to AI bot failure")
                 return readme_path
     except FileNotFoundError as e:
@@ -1100,7 +1100,6 @@ def tell_me_a_story(analyses, analyses_path, saved_files, ai_insights):
     except Exception as e:
         logging.error(f"Error opening or writing to the file {readme_path}: {e}")
         return None
-
 
 def perform_story_time(args):
     """
@@ -1173,7 +1172,7 @@ def format_ai_message(question, context, img_path=None):
             "role": "system",
             "content": "You are a expert data analyst, tasked with generating a clear story from the provided input, in a markdown(.md) format." +
             "The story must include data insights, statistical observations, graphs interpretations and your recommendations." +
-            "Use well-structured markdown including headers, lists, paragpahs and emphasis."
+            "Use well-structured markdown including headers, tables, lists, paragpahs and emphasis."
         },
         {
             "role": "user",
@@ -1358,7 +1357,7 @@ if __name__ == "__main__":
         # Use the same directory as of the input CSV file
         output_dir = os.path.dirname(args.dataset_path)
         # save all analysis in file
-        analyses_file_path = os.path.join(output_dir, f"data_analysis.md")
+        analyses_file_path = os.path.join(output_dir, f"DATA_ANALYSIS.md")
         # Following variable to track successfully created files. This is to ensure that final document has only generated file and no empty paths
         saved_files = set()
         try:
