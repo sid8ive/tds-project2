@@ -979,7 +979,7 @@ def analyze_csv_data(csv_file):
     output_dir = os.path.dirname(csv_file)
 
     # save all analysis in file
-    analyses_file_path = os.path.join(output_dir, f"DATA_ANALYSIS.md")
+    analyses_file_path = os.path.join(output_dir, f"data_analysis.md")
     logging.info(f"Output directory set to: {output_dir}")
 
     # Following variable to track successfully created files. This is to ensure that final document has only generated file and no empty paths
@@ -989,7 +989,7 @@ def analyze_csv_data(csv_file):
         df = clean_data(df)
 
         analysis_content = ""
-        ai_insights = []
+        ai_insights = [] #Initialize, we will get the insights from main
         analysis_content += do_basic_analysis(df, csv_file)
 
         # Perform analyses using the new perform_analysis function
@@ -1065,10 +1065,10 @@ def tell_me_a_story(analyses, analyses_path, saved_files, ai_insights):
         with open(readme_path, "w") as readme_file:
             story_context = f"Statistical data in markup:\n{analyses}"
             #story_context += f"AI generated insights:\n {ai_insights}" if ai_insights else ""  # Removed AI insights from here
-            
+
             readme_file.write("*Every story is complicated until it finds the right storyteller — Anonymous*\n\n\n")
             readme_file.write(f"{story_context}\n\n{ai_insights}") #added AI insights at the start
-
+           
             try:
                 story = ai_bot_helper(
                     "Generate a creative, yet data-driven and professional story based on the provided content and graphs. The narrative should focus on four key aspects:" +
@@ -1083,7 +1083,7 @@ def tell_me_a_story(analyses, analyses_path, saved_files, ai_insights):
                     if not isinstance(story, str):
                         logging.error("AI bot did not return markdown output, but proceeding with static markdown")
                         return readme_path
-                    readme_file.write(f"{story}\n")
+                    readme_file.write(f"\n{story}\n") #Add story after all other details.
                     logging.info("Added story to README.md file")
                     return readme_path
                 else:
@@ -1357,7 +1357,7 @@ if __name__ == "__main__":
         # Use the same directory as of the input CSV file
         output_dir = os.path.dirname(args.dataset_path)
         # save all analysis in file
-        analyses_file_path = os.path.join(output_dir, f"DATA_ANALYSIS.md")
+        analyses_file_path = os.path.join(output_dir, f"data_analysis.md")
         # Following variable to track successfully created files. This is to ensure that final document has only generated file and no empty paths
         saved_files = set()
         try:
