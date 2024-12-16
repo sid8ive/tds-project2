@@ -1064,11 +1064,11 @@ def tell_me_a_story(analyses, analyses_path, saved_files, ai_insights):
     try:
         with open(readme_path, "w") as readme_file:
             story_context = f"Statistical data in markup:\n{analyses}"
-            #story_context += f"AI generated insights:\n {ai_insights}" if ai_insights else ""  # Removed AI insights from here
+            #story_context += f"\n\nAI generated insights:\n {ai_insights}" if ai_insights else "" # Removed AI insights from here
 
             readme_file.write("*Every story is complicated until it finds the right storyteller — Anonymous*\n\n\n")
-            readme_file.write(f"{story_context}\n\n{ai_insights}") #added AI insights at the start
-           
+           # readme_file.write(f"{story_context}\n\n{ai_insights}")  # do not write it now. will add it later
+            
             try:
                 story = ai_bot_helper(
                     "Generate a creative, yet data-driven and professional story based on the provided content and graphs. The narrative should focus on four key aspects:" +
@@ -1077,21 +1077,25 @@ def tell_me_a_story(analyses, analyses_path, saved_files, ai_insights):
                     " 3) insights and anomalies identified by you, explaining them clearly and" +
                     " 4) the implications of your findings." +
                     " Include relevant images from the provided content, using the image descriptions and your analysis to make the story engaging and provide insights on the images. Also mention any data limitations or biases. Use external hyperlinks and references to strengthen the storyline.",
-                    analyses, #only pass static analysis
+                    story_context, #Use the full context with ai_insights
                      )
                 if story:
                     if not isinstance(story, str):
                         logging.error("AI bot did not return markdown output, but proceeding with static markdown")
+                        readme_file.write(f"{story_context}\n\n{ai_insights}")
                         return readme_path
-                    readme_file.write(f"\n{story}\n") #Add story after all other details.
+                    readme_file.write(f"{story}\n")
                     logging.info("Added story to README.md file")
                     return readme_path
                 else:
                     logging.error(f"Unable to generate a story by AI Bot. Static content with all available insights will be used")
+                    readme_file.write(f"{story_context}\n\n{ai_insights}")
                     logging.info("Added story to README.md file, using static content since AI bot returned None")
                     return readme_path
             except Exception as e:
                 logging.error(f"Error during AI bot call in tell_me_a_story function: {e}, will use static analysis.")
+                #fall back to static content
+                readme_file.write(f"{story_context}\n\n{ai_insights}")
                 logging.info("Added story to README.md file, using static content due to AI bot failure")
                 return readme_path
     except FileNotFoundError as e:
@@ -1100,7 +1104,7 @@ def tell_me_a_story(analyses, analyses_path, saved_files, ai_insights):
     except Exception as e:
         logging.error(f"Error opening or writing to the file {readme_path}: {e}")
         return None
-
+    
 def perform_story_time(args):
     """
     Performs basic story time analysis for the arguments passed by AI bot
