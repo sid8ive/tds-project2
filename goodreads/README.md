@@ -1,6 +1,7 @@
 *Every story is complicated until it finds the right storyteller — Anonymous*
 
 
+Statistical data in markup:
 # Summary of findings
 
 ## Overview
@@ -11,13 +12,13 @@ The file has 10000 rows and 23 columns
 ### Sample 5 rows from file, for context
 
 Sample data:
-| isbn       | authors                                 | original_title                                                                                      | title                                                                                               | language_code   | image_url                                                                                                                      | small_image_url                                                                                                              |
-|:-----------|:----------------------------------------|:----------------------------------------------------------------------------------------------------|:----------------------------------------------------------------------------------------------------|:----------------|:-------------------------------------------------------------------------------------------------------------------------------|:-----------------------------------------------------------------------------------------------------------------------------|
-|            | Brent Weeks                             | The Broken Eye                                                                                      | The Broken Eye (Lightbringer, #3)                                                                   | eng             | <img src="https://images.gr-assets.com/books/1376583941m/12652457.jpg" alt="Image" width="100" />                              | <img src="https://images.gr-assets.com/books/1376583941s/12652457.jpg" alt="Image" width="100" />                            |
-| 786851473  | Eoin Colfer                             | The Arctic Incident                                                                                 | The Arctic Incident (Artemis Fowl, #2)                                                              | eng             | <img src="https://s.gr-assets.com/assets/nophoto/book/111x148-bcc042a9c91a29c1d680899eff700a03.png" alt="Image" width="100" /> | <img src="https://s.gr-assets.com/assets/nophoto/book/50x75-a91bf249278a81aabab721ef782c4a74.png" alt="Image" width="100" /> |
-| 147673190X | Jeff Hobbs                              | The Short and Tragic Life of Robert Peace: A Brilliant Young Man Who Left Newark for the Ivy League | The Short and Tragic Life of Robert Peace: A Brilliant Young Man Who Left Newark for the Ivy League | eng             | <img src="https://images.gr-assets.com/books/1420938377m/18775365.jpg" alt="Image" width="100" />                              | <img src="https://images.gr-assets.com/books/1420938377s/18775365.jpg" alt="Image" width="100" />                            |
-|            | Jacob Grimm, Wilhelm Grimm, منى الخميسي | Grimms Märchen                                                                                      | Grimm's Fairy Tales                                                                                 | eng             | <img src="https://s.gr-assets.com/assets/nophoto/book/111x148-bcc042a9c91a29c1d680899eff700a03.png" alt="Image" width="100" /> | <img src="https://s.gr-assets.com/assets/nophoto/book/50x75-a91bf249278a81aabab721ef782c4a74.png" alt="Image" width="100" /> |
-| 1451651694 | Amanda Lindhout, Sara Corbett           | A House in the Sky                                                                                  | A House in the Sky                                                                                  | eng             | <img src="https://images.gr-assets.com/books/1370379455m/18039963.jpg" alt="Image" width="100" />                              | <img src="https://images.gr-assets.com/books/1370379455s/18039963.jpg" alt="Image" width="100" />                            |
+| isbn       | authors                    | original_title                                                                                             | title                                                                                                      | language_code   | image_url                                                                                                                      | small_image_url                                                                                                              |
+|:-----------|:---------------------------|:-----------------------------------------------------------------------------------------------------------|:-----------------------------------------------------------------------------------------------------------|:----------------|:-------------------------------------------------------------------------------------------------------------------------------|:-----------------------------------------------------------------------------------------------------------------------------|
+| 075824682X | Donna Russo Morin          |                                                                                                            | The King's Agent                                                                                           | en-US           | <img src="https://images.gr-assets.com/books/1313276211m/11996019.jpg" alt="Image" width="100" />                              | <img src="https://images.gr-assets.com/books/1313276211s/11996019.jpg" alt="Image" width="100" />                            |
+| 679746048  | Susanna Kaysen             | Girl, Interrupted                                                                                          | Girl, Interrupted                                                                                          | eng             | <img src="https://images.gr-assets.com/books/1475482930m/68783.jpg" alt="Image" width="100" />                                 | <img src="https://images.gr-assets.com/books/1475482930s/68783.jpg" alt="Image" width="100" />                               |
+| 1598878735 | Daniel Coyle, John Farrell | The Talent Code: Unlocking the Secret of Skill in Sports, Art, Music, Math, and Just About Everything Else | The Talent Code: Unlocking the Secret of Skill in Sports, Art, Music, Math, and Just About Everything Else |                 | <img src="https://images.gr-assets.com/books/1404579448m/5771014.jpg" alt="Image" width="100" />                               | <img src="https://images.gr-assets.com/books/1404579448s/5771014.jpg" alt="Image" width="100" />                             |
+| 61051586   | Terry Pratchett            | Carpe Jugulum                                                                                              | Carpe Jugulum (Discworld #23; Witches #6)                                                                  | eng             | <img src="https://s.gr-assets.com/assets/nophoto/book/111x148-bcc042a9c91a29c1d680899eff700a03.png" alt="Image" width="100" /> | <img src="https://s.gr-assets.com/assets/nophoto/book/50x75-a91bf249278a81aabab721ef782c4a74.png" alt="Image" width="100" /> |
+| 3552060413 | Daniel Glattauer           | Gut gegen Nordwind                                                                                         | Gut gegen Nordwind (Gut gegen Nordwind, #1)                                                                | ger             | <img src="https://s.gr-assets.com/assets/nophoto/book/111x148-bcc042a9c91a29c1d680899eff700a03.png" alt="Image" width="100" /> | <img src="https://s.gr-assets.com/assets/nophoto/book/50x75-a91bf249278a81aabab721ef782c4a74.png" alt="Image" width="100" /> |
 
 ### Descriptive analysis of the data
 
@@ -118,39 +119,39 @@ The following plots show the distribution of categorical data:
 This bar chart shows the distribution of `isbn` column.
 
 Sample 5 rows from provided data, for context to Categorical distribution 
-|       isbn |
-|-----------:|
-|  451236718 |
-|  743464117 |
-|  544303164 |
-| 1841490237 |
-| 1421506270 |
+| isbn       |
+|:-----------|
+| 1401322905 |
+| 515142905  |
+| 767905180  |
+| 039925675X |
+| 1613778538 |
 ![Distribution of authors](distribution_of_authors.png)
 
 
 This bar chart shows the distribution of `authors` column.
 
 Sample 5 rows from provided data, for context to Categorical distribution 
-| authors               |
-|:----------------------|
-| Norman Maclean        |
-| Kevin J. Anderson     |
-| James Fenimore Cooper |
-| Wally Lamb            |
-| Patrick O'Brian       |
+| authors                    |
+|:---------------------------|
+| Andrew Ross Sorkin         |
+| Stieg Larsson, Reg Keeland |
+| James Patterson            |
+| Erik Larson                |
+| Nikki Sixx                 |
 ![Distribution of original_title](distribution_of_original_title.png)
 
 
 This bar chart shows the distribution of `original_title` column.
 
 Sample 5 rows from provided data, for context to Categorical distribution 
-| original_title                                                          |
-|:------------------------------------------------------------------------|
-| Best Friends for Never (The Clique, #2)                                 |
-| The Body Snatchers                                                      |
-| Van Gogh: The Life                                                      |
-| Deceptively Delicious: Simple Secrets to Get Your Kids Eating Good Food |
-| Healthy Sleep Habits, Happy Child                                       |
+| original_title                                                                                            |
+|:----------------------------------------------------------------------------------------------------------|
+| Whispers at Moonrise                                                                                      |
+| Kitchen Confidential: Adventures in the Culinary Underbelly                                               |
+| هشت کتاب: مرگِ رنگ. زندگیِ خواب‌ه. آوارِ آفتاب. شرقِ اندوه. صدای پای آب. مسافر. حجمِ سبز. ما هیچ، ما نگاه |
+| The Walking Dead, Vol. 10: What We Become                                                                 |
+| The Melancholy Death of Oyster Boy and Other Stories                                                      |
 
 
 
@@ -178,13 +179,13 @@ This scatter plot represents the cluster analysis results.
 
 Sample data with clusters:
 
-|   book_id |   goodreads_book_id |   best_book_id |   work_id |   books_count | isbn       |      isbn13 | authors                    |   original_publication_year | original_title                                                             | title                                                                      | language_code   |   average_rating |   ratings_count |   work_ratings_count |   work_text_reviews_count |   ratings_1 |   ratings_2 |   ratings_3 |   ratings_4 |   ratings_5 | image_url                                                                                | small_image_url                                                                        |   Cluster |
-|----------:|--------------------:|---------------:|----------:|--------------:|:-----------|------------:|:---------------------------|----------------------------:|:---------------------------------------------------------------------------|:---------------------------------------------------------------------------|:----------------|-----------------:|----------------:|---------------------:|--------------------------:|------------:|------------:|------------:|------------:|------------:|:-----------------------------------------------------------------------------------------|:---------------------------------------------------------------------------------------|----------:|
-|       455 |               42155 |          42155 |   1470371 |            43 | 312323867  | 9.78031e+12 | Emily Giffin               |                        2005 | Something Blue                                                             | Something Blue (Darcy & Rachel, #2)                                        | en-US           |             3.92 |          172417 |               178529 |                      6646 |        2164 |        9144 |       44161 |       68226 |       54834 | https://s.gr-assets.com/assets/nophoto/book/111x148-bcc042a9c91a29c1d680899eff700a03.png | https://s.gr-assets.com/assets/nophoto/book/50x75-a91bf249278a81aabab721ef782c4a74.png |         1 |
-|      8566 |            13333093 |       13333093 |  18541011 |            20 | 758278438  | 9.78076e+12 | Ellen Marie Wiseman        |                        2012 | The Plum Tree                                                              | The Plum Tree                                                              | eng             |             4.02 |            8479 |                10909 |                      1194 |         151 |         516 |        2094 |        4352 |        3796 | https://images.gr-assets.com/books/1339438508m/13333093.jpg                              | https://images.gr-assets.com/books/1339438508s/13333093.jpg                            |         0 |
-|      7636 |             7011879 |        7011879 |   7257194 |             7 | 8188575658 | 9.78819e+12 | Durjoy Datta, Maanvi Ahuja |                        2008 | of course i love you                                                       | Of Course I Love You...! Till I Find Someone Better...                     | en-GB           |             3.21 |            6671 |                 9661 |                       301 |        1059 |        1663 |        2910 |        2203 |        1826 | https://images.gr-assets.com/books/1274597947m/7011879.jpg                               | https://images.gr-assets.com/books/1274597947s/7011879.jpg                             |         1 |
-|      8640 |               93575 |          93575 |    341789 |            72 | 61043494   | 9.78006e+12 | Dorothy L. Sayers          |                        1935 | Gaudy Night                                                                | Gaudy Night (Lord Peter Wimsey, #12)                                       | eng             |             4.26 |           14750 |                16378 |                      1203 |         166 |         526 |        2267 |        5352 |        8067 | https://s.gr-assets.com/assets/nophoto/book/111x148-bcc042a9c91a29c1d680899eff700a03.png | https://s.gr-assets.com/assets/nophoto/book/50x75-a91bf249278a81aabab721ef782c4a74.png |         1 |
-|      8943 |            18213403 |       18213403 |  25637147 |            51 | 162779073X | 9.78163e+12 | Glenn Greenwald            |                        2014 | No Place to Hide: Edward Snowden, the NSA, and the U.S. Surveillance State | No Place to Hide: Edward Snowden, the NSA, and the U.S. Surveillance State | eng             |             4.08 |            8366 |                10364 |                      1130 |         170 |         381 |        1772 |        4188 |        3853 | https://images.gr-assets.com/books/1383352779m/18213403.jpg                              | https://images.gr-assets.com/books/1383352779s/18213403.jpg                            |         0 |
+|   book_id |   goodreads_book_id |   best_book_id |   work_id |   books_count |       isbn |      isbn13 | authors         |   original_publication_year | original_title                                                    | title                                                             | language_code   |   average_rating |   ratings_count |   work_ratings_count |   work_text_reviews_count |   ratings_1 |   ratings_2 |   ratings_3 |   ratings_4 |   ratings_5 | image_url                                                  | small_image_url                                            |   Cluster |
+|----------:|--------------------:|---------------:|----------:|--------------:|-----------:|------------:|:----------------|----------------------------:|:------------------------------------------------------------------|:------------------------------------------------------------------|:----------------|-----------------:|----------------:|---------------------:|--------------------------:|------------:|------------:|------------:|------------:|------------:|:-----------------------------------------------------------|:-----------------------------------------------------------|----------:|
+|      6770 |               22207 |          22207 |     23263 |            32 |   60875070 | 9.78006e+12 | Heather O'Neill |                        2006 | Lullabies for Little Criminals                                    | Lullabies for Little Criminals                                    | eng             |             3.95 |           14535 |                15087 |                      1238 |         232 |         798 |        3177 |        6157 |        4723 | https://images.gr-assets.com/books/1327893204m/22207.jpg   | https://images.gr-assets.com/books/1327893204s/22207.jpg   |         1 |
+|      3235 |             7108725 |        7108725 |   7367737 |            43 | 1591842808 | 9.78159e+12 | Simon Sinek     |                        2009 | Start with Why: How Great Leaders Inspire Everyone to Take Action | Start with Why: How Great Leaders Inspire Everyone to Take Action |                 |             4.07 |           32899 |                36466 |                      2119 |         881 |        1839 |        6334 |       12067 |       15345 | https://images.gr-assets.com/books/1360936414m/7108725.jpg | https://images.gr-assets.com/books/1360936414s/7108725.jpg |         1 |
+|      6924 |               60211 |          60211 |    762497 |            44 |  671540661 | 9.78067e+12 | Gene Wolfe      |                        1980 | The Shadow of the Torturer                                        | The Shadow of the Torturer (The Book of the New Sun #1)           | eng             |             3.8  |           15507 |                16508 |                       885 |         636 |        1538 |        3710 |        5303 |        5321 | https://images.gr-assets.com/books/1329650008m/60211.jpg   | https://images.gr-assets.com/books/1329650008s/60211.jpg   |         1 |
+|      6035 |              107772 |         107772 |   1913455 |            40 |  671702513 | 9.78067e+12 | Julie Garwood   |                        1991 | The Prize                                                         | The Prize                                                         | eng             |             4.22 |           21157 |                22569 |                       494 |         136 |         643 |        3752 |        7680 |       10358 | https://images.gr-assets.com/books/1304789713m/107772.jpg  | https://images.gr-assets.com/books/1304789713s/107772.jpg  |         1 |
+|      8330 |             8720917 |        8720917 |  13593837 |            40 |  385613504 | 9.78039e+12 | Jenny Downham   |                        2010 | You Against Me                                                    | You Against Me                                                    | eng             |             3.7  |           15118 |                16478 |                      1397 |         538 |        1455 |        4543 |        5752 |        4190 | https://images.gr-assets.com/books/1311064228m/8720917.jpg | https://images.gr-assets.com/books/1311064228s/8720917.jpg |         0 |
 
 
 
@@ -193,4 +194,94 @@ Error during pca analysis
 -->
 
 
-[]
+[]# Analysis of Goodreads Book Data
+
+## Overview
+
+In our examination of the Goodreads database, we analyzed a dataset titled `goodreads.csv`, which consists of **10,000 rows** and **23 columns**. This dataset captures various attributes related to books, including authorship, publication year, ratings, and more. 
+
+### Sample Data
+
+| ISBN       | Authors                    | Original Title                                                                                             | Title                                                                                                      | Language Code | Image URL                                                                                                                      |
+|:-----------|:---------------------------|:-----------------------------------------------------------------------------------------------------------|:-----------------------------------------------------------------------------------------------------------|:--------------|:-------------------------------------------------------------------------------------------------------------------------------|
+| 075824682X | Donna Russo Morin          |                                                                                                            | The King's Agent                                                                                           | en-US         | ![Image](https://images.gr-assets.com/books/1313276211m/11996019.jpg)                                                       |
+| 679746048  | Susanna Kaysen             | Girl, Interrupted                                                                                          | Girl, Interrupted                                                                                          | eng           | ![Image](https://images.gr-assets.com/books/1475482930m/68783.jpg)                                                          |
+| 1598878735 | Daniel Coyle, John Farrell | The Talent Code: Unlocking the Secret of Skill in Sports, Art, Music, Math, and Just About Everything Else | The Talent Code                                                                                            |                | ![Image](https://images.gr-assets.com/books/1404579448m/5771014.jpg)                                                       |
+| 61051586   | Terry Pratchett            | Carpe Jugulum                                                                                              | Carpe Jugulum (Discworld #23; Witches #6)                                                                  | eng           | ![Image](https://s.gr-assets.com/assets/nophoto/book/111x148-bcc042a9c91a29c1d680899eff700a03.png)                        |
+| 3552060413 | Daniel Glattauer           | Gut gegen Nordwind                                                                                         | Gut gegen Nordwind (Gut gegen Nordwind, #1)                                                                | ger           | ![Image](https://s.gr-assets.com/assets/nophoto/book/111x148-bcc042a9c91a29c1d680899eff700a03.png)                        |
+
+---
+
+## Data Analysis Methodology
+
+The analysis carried out focuses on a range of statistical techniques to uncover insights regarding the books in our dataset:
+
+1. **Descriptive Statistics**: Calculation of mean, median, standard deviation, and identification of minimum and maximum values across different book attributes.
+
+2. **Correlation Analysis**: Evaluating relationships between numerical features to determine potential factors influencing ratings.
+
+3. **Outlier Detection**: Utilizing box plots to visualize and identify extreme values that may skew analysis.
+
+4. **Temporal Analysis**: Conducting time series analysis to explore trends in ratings over the years.
+
+5. **Text Analysis**: Utilizing a word cloud to identify prevalent themes among book titles.
+
+### Key Findings from Analysis
+
+- **Average Rating**: The average rating across all books is **4.0**, with a maximum of **4.82** and a minimum of **2.47**, reflecting a generally favorable perception among readers.
+  
+- **Missing Values**: The dataset had some missing values, notably in `isbn` (700 entries) and `original_publication_year` (21 entries). This can introduce bias and affect the accuracy of the analysis.
+
+- **Word Cloud Insights**: A word cloud produced from book titles highlighted frequent terms such as *'john'*, *'life'*, and *'girl'*, suggesting popular themes within the literature.
+
+![Word Cloud Analysis](word_cloud.png)
+
+- **Anomalies**: We identified a publication year of **-1750**, indicating a potential data entry error that should be addressed.
+
+- **Correlation Insights**: A strong correlation exists between ratings count and average ratings, suggesting that a higher number of reviews often corresponds with higher ratings.
+
+![Correlation Heatmap](correlation_heatmap.png)
+
+---
+
+## Visual Interpretations
+
+### Outlier Analysis
+
+The outlier detection process indicated certain books with extraordinarily high ratings counts, indicating these may be popular or 'viral' books.
+
+![Outlier Detection Box Plot](outlier_detection_box_plot.png)
+
+### Trends Over Time
+
+The time series analysis shows a noticeable increase in ratings over recent years, suggesting that books from this dataset are becoming increasingly popular.
+
+![Time Series Analysis](time_series_analysis.png)
+
+---
+
+## Implications and Recommendations
+
+The insights derived from this analysis suggest several actionable recommendations:
+
+- **Improving Data Quality**: Addressing the identified missing values and anomalies is critical for ensuring more precise outcomes in future analyses.
+
+- **Further Exploration of Themes**: Given the common themes highlighted in the word cloud, exploring specific genres or themes could yield deeper insights into reader preferences.
+
+- **Targeted Marketing for Popular Books**: Identifying the outlier books could guide targeted marketing campaigns for books that are already resonating strongly with audiences.
+
+- **Continuous Monitoring**: Implementing a system for real-time data updates will allow for continuous refinement of insights, keeping stakeholders informed of market dynamics.
+
+---
+
+## Limitations
+
+While this analysis provides valuable insights, there are limitations:
+
+1. **Dataset Size**: While 10,000 entries provide a robust base, a larger dataset could offer deeper insights.
+
+2. **Missing Data Handling**: The approach to handling missing values was basic and could benefit from advanced techniques such as Multiple Imputation.
+
+3. **Potential Bias**: Given the data's reliance on user-generated ratings, bias in preferences or demographic factors may skew results.
+
+For more detailed insights and methodologies on similar datasets, you may explore analytics resources from platforms like [Kaggle](https://www.kaggle.com/) and [Coursera](https://www.coursera.org/).
