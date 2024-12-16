@@ -22,8 +22,6 @@ import base64
 import logging
 import os
 import sys
-from datetime import datetime
-from enum import Enum
 
 # Third-party library imports
 import chardet
@@ -140,7 +138,7 @@ def select_relevant_columns(df, analysis_type, excluded_keywords=None, sample_si
              return f'<img src="{value}" alt="Image" width="100" />' # HTML img tag for URL's
           else:
              return str(value) #convert other data types to string if required.
-    formatted_df = selected_df.sample(min(sample_size, len(selected_df))).fillna('').applymap(format_cell)
+    formatted_df = selected_df.sample(min(sample_size, len(selected_df))).fillna('').map(format_cell) # changed applymap to map
     return f"Sample data:\n{formatted_df.to_markdown(index=False)}"
   elif as_markdown and len(selected_df) == 0:
       return "No relevant data to show"
@@ -169,7 +167,7 @@ def handle_analysis_error(func_name, e):
     """Handles analysis errors by logging and returning a markdown comment."""
     logging.error(f"Error during {func_name}: {e}")
 
-    return f"\n<!--### {func_name}\nError during {func_name}\n-->\n" #Returning markdown comment
+    return f"\n<!--### {func_name}\nError during {func_name} : {e}\n-->\n" #Returning markdown comment
 
 def report_relevant_columns(relevant_cols, text_str):
     """Generates markdown text for relevant columns in the dataset."""
@@ -367,7 +365,8 @@ def calculate_pca(df, n_components):
         return None, None
         # Scaling and PCA
     scaler = StandardScaler()
-    df_scaled = scaler.fit_transform(numeric_df)
+    imputer = SimpleImputer(strategy="mean")  # or 'median', 'most_frequent'
+    df_scaled = scaler.fit_transform(imputer.fit_transform(numeric_df))
     pca = PCA(n_components=min(n_components, numeric_df.shape[1]))
     pca_components = pca.fit_transform(df_scaled)
 
@@ -377,13 +376,13 @@ def calculate_pca(df, n_components):
 
 # Helper function to generate plots
 def plot_word_cloud(wordcloud, title, output_dir, saved_files, df):
-   plt.figure(figsize=(7, 4))
-   plt.imshow(wordcloud, interpolation="bilinear")
-   plt.axis('off')  # No axes for word cloud
-   plt.title(title)
-   fName = f"word_cloud.png"
-   fPath = generate_chart(plt, fName, df, output_dir, saved_files)
-   return fPath
+   """Helper function to plot wordcloud data."""
+   def _plot_word_cloud(wordcloud):
+        plt.figure(figsize=(7, 4))
+        plt.imshow(wordcloud, interpolation="bilinear")
+        plt.axis('off')  # No axes for word cloud
+        plt.title(title)
+   return create_plot_with_title(df, lambda df: _plot_word_cloud(wordcloud), title, output_dir, saved_files)
 
 def plot_correlation_heatmap(correlation, title, output_dir, saved_files):
    def _plot_corr_heatmap(data): # creating inner function
@@ -413,8 +412,8 @@ def convert_to_datetime(df, date_column):
            pd.DataFrame:  with converted date column
          """
       logging.info(f"Trying to convert '{date_column}' to time series data type")
+      df_copy = df.copy()
       try:
-          df_copy = df.copy()
           # if the column is numeric, it is assumed that is a year column.
           if df[date_column].dtype == np.dtype('int64') or df[date_column].dtype == np.dtype('float64'):
               df_copy[date_column] = pd.to_datetime(df_copy[date_column].apply(lambda x: f"{int(x)}-01-01"), errors='raise')
@@ -424,67 +423,63 @@ def convert_to_datetime(df, date_column):
           df_copy[date_column] = pd.to_datetime(df_copy[date_column], errors='raise', infer_datetime_format=True)
           logging.info(f"Column '{date_column}' was converted using infer datetime format.")
           return df_copy
-
       except ValueError:
-          logging.warning(f"Column '{date_column}' does not have a valid date format. Trying configured formats")
-          converted = False
-          for format in CONFIG["TIME_SERIES_DATE_FORMATS"]:
+           logging.warning(f"Column '{date_column}' does not have a valid date format. Trying configured formats")
+           converted = False
+           for format in CONFIG["TIME_SERIES_DATE_FORMATS"]:
                try:
-                 df_copy = df.copy()
-                 df_copy[date_column] = pd.to_datetime(df_copy[date_column], errors='raise', format=format)  # Try format
-                 converted = True
-                 logging.info(f"Column '{date_column}' converted using format: '{format}'")
-                 return df_copy #return df after converting date column
+                    df_copy = df.copy()
+                    df_copy[date_column] = pd.to_datetime(df_copy[date_column], errors='raise', format=format)  # Try format
+                    converted = True
+                    logging.info(f"Column '{date_column}' converted using format: '{format}'")
+                    return df_copy #return df after converting date column
                except ValueError:
-                  continue
-          if not converted:
+                    continue
+           if not converted:
             logging.warning(f"Column '{date_column}' does not have a valid date format for time series analysis using configured formats.")
-          return None
+           return None
       except Exception as e:
-          logging.warning(f"An unexpected error occurred during date conversion : {e}, skipping")
-          return None
-
+           logging.warning(f"An unexpected error occurred during date conversion : {e}, skipping")
+           return None
+      
 def plot_time_series(df, output_dir, saved_files):
-        """
-           Generates time series plot if a suitable date/year field is available.
-        """
-        logging.info("Starting time series analysis...")
-        ai_insights = ""
-        try:
-           date_column = next((col for col in df.columns if any(keyword in col.lower() for keyword in ['date', 'year'])), None)
-           if date_column:
-              logging.info(f"Found column '{date_column}' using keywords 'date' or 'year' for time series analysis.")
-           else:
-                logging.warning("No 'date' or 'year' column found. Trying to find other suitable columns")
-                for col in df.columns:
-                     df_copy = convert_to_datetime(df, col)
-                     if df_copy is not None:
-                        date_column=col
-                        df = df_copy #reset the df if the column is converted successfully
-                        logging.info(f"Using column '{col}' for time series analysis")
-                        break
-                     else:
-                        continue
-           if not date_column:
-               logging.warning(f"No suitable date/year column found for time series analysis.")
-               return f"\n<!--### Time Series Analysis\nNo time series analysis found\n-->\n", ai_insights
+    """
+        Generates time series plot if a suitable date/year field is available.
+    """
+    logging.info("Starting time series analysis...")
+    ai_insights = ""
+    try:
+        date_column = next((col for col in df.columns if any(keyword in col.lower() for keyword in ['date', 'year'])), None)
+        if date_column:
+            logging.info(f"Found column '{date_column}' using keywords 'date' or 'year' for time series analysis.")
+        else:
+            logging.warning("No 'date' or 'year' column found. Trying to find other suitable columns")
+            for col in df.columns:
+                df_copy = convert_to_datetime(df, col)
+                if df_copy is not None:
+                    date_column=col
+                    df = df_copy #reset the df if the column is converted successfully
+                    logging.info(f"Using column '{col}' for time series analysis")
+                    break
+                else:
+                    continue
+        if not date_column:
+            logging.warning(f"No suitable date/year column found for time series analysis.")
+            return f"\n<!--### Time Series Analysis\nNo time series analysis found\n-->\n", ai_insights
 
-          # Set the date column as index
-           df = df.set_index(date_column)
-           numeric_cols = df.select_dtypes(include=np.number).columns
-           if not len(numeric_cols):
-               logging.warning("No numeric column found to plot time series analysis")
-               return f"\n<!--### Time Series Analysis\nNo time series analysis found\n-->\n", ai_insights # returning markdown comment
-          # Use common function to generate plot and save
-           analysis_str, ai_insights = plot_time_series_graph(df, "Time Series Analysis", output_dir, saved_files,
-                                                        numeric_cols=numeric_cols)
-           if analysis_str:
-                analysis_str = f"{analysis_str}\nThis line plot shows trends over time for numerical data with a `Date` column.\n"
-           else:
-                analysis_str = f"\n<!--### Time Series Analysis\nNo time series analysis found\n-->\n", ai_insights
-                logging.info("Time series analysis chart saved.")
-           return analysis_str, ai_insights
-        except Exception as e:
+        # Set the date column as index
+        df = df.set_index(date_column)
+        numeric_cols = df.select_dtypes(include=np.number).columns
+        if not len(numeric_cols):
+            logging.warning("No numeric column found to plot time series analysis")
+            return f"\n<!--### Time Series Analysis\nNo time series analysis found\n-->\n", ai_insights # returning markdown comment
+        # Use common function to generate plot and save
+        analysis_str, ai_insights = plot_time_series_graph(df, "Time Series Analysis", output_dir, saved_files,
+                                                    numeric_cols=numeric_cols)
+        analysis_str = f"{analysis_str}\nThis line plot shows trends over time for numerical data with a `Date` column.\n"
+        logging.info("Time series analysis chart saved.")
+        return analysis_str, ai_insights
+    except Exception as e:
             return handle_analysis_error("time series analysis", e), ai_insights
 
 def plot_geographic_analysis(df, output_dir, saved_files):
@@ -523,16 +518,15 @@ def plot_geographic_analysis(df, output_dir, saved_files):
             data=df
         )
 
-        if analysis_str:
-            analysis_str += (
-                "\nThis scatter plot maps data points based on their geographic coordinates "
-                f"(`Latitude`: `{latitude_column}` and `Longitude`: `{longitude_column}`).\n"
-            )
-            # Add a sample of 5 rows for additional context
-            sample_data = df[[latitude_column, longitude_column]].sample(
-                min(5, len(df))
-            ).fillna("").to_markdown(index=False)
-            analysis_str += f"\nSample rows from the dataset:\n\n{sample_data}\n"
+        analysis_str += (
+            "\nThis scatter plot maps data points based on their geographic coordinates "
+            f"(`Latitude`: `{latitude_column}` and `Longitude`: `{longitude_column}`).\n"
+        )
+        # Add a sample of 5 rows for additional context
+        sample_data = df[[latitude_column, longitude_column]].sample(
+            min(5, len(df))
+        ).fillna("").to_markdown(index=False)
+        analysis_str += f"\nSample rows from the dataset:\n\n{sample_data}\n"
 
         logging.info("Geographic distribution chart saved successfully.")
         return analysis_str, ai_insights
@@ -556,24 +550,21 @@ def plot_network_analysis(df, output_dir, saved_files):
         # Create graph
         G = nx.from_pandas_edgelist(df, source='source', target='destination',create_using=nx.DiGraph())
 
-         # Calculate network metrics
+        # Calculate network metrics
         degrees = dict(G.degree())
         centrality = nx.degree_centrality(G)
         # Visualization and save
         analysis_str, ai_insights = plot_network_chart(df, G,degrees, "Network Analysis", output_dir, saved_files, layout="circular")
 
-        if analysis_str:
-            analysis_str = "\n### Network Analysis\n"
-            analysis_str += f"**This plot shows the network of cities and network between them.**\n\n"
-            analysis_str += f"**Network Information:**\n- **Nodes:** {list(G.nodes())}\n- **Edges:** {list(G.edges())}\n"
-            analysis_str += f"- **Node Degrees:** {degrees}\n- **Centralities:** {centrality}\n\n"
-            
-             # Add sample of 5 rows from data
-            sample_data = f"\nSample 5 rows from provided data, for context to Network Analysis \n{df.sample(min(5, len(df))).fillna('').to_markdown(index=False)}"
+        analysis_str = "\n### Network Analysis\n"
+        analysis_str += f"**This plot shows the network of cities and network between them.**\n\n"
+        analysis_str += f"**Network Information:**\n- **Nodes:** {list(G.nodes())}\n- **Edges:** {list(G.edges())}\n"
+        analysis_str += f"- **Node Degrees:** {degrees}\n- **Centralities:** {centrality}\n\n"
 
-            analysis_str+=sample_data
-        else:
-            analysis_str= f"\n<!--### Network Analysis\nNo network analysis generated\n-->\n", ai_insights #returning markdown comment
+        # Add sample of 5 rows from data
+        sample_data = f"\nSample 5 rows from provided data, for context to Network Analysis \n{df.sample(min(5, len(df))).fillna('').to_markdown(index=False)}"
+
+        analysis_str+=sample_data
         logging.info("Network analysis chart saved.")
         return analysis_str, ai_insights
 
@@ -623,11 +614,10 @@ def plot_categorical_data(df, output_dir, saved_files):
             analysis_str += plot_str
             if insight:
                 ai_insights.append(insight)
-            if analysis_str:
-                analysis_str += f"\nThis bar chart shows the distribution of `{col}` column.\n"
-                # Add sample of 5 rows from data
-                sample_data = f"\nSample 5 rows from provided data, for context to Categorical distribution \n{df[[col]].sample(min(5, len(df))).fillna('').to_markdown(index=False)}\n"
-                analysis_str+=sample_data
+            analysis_str += f"\nThis bar chart shows the distribution of `{col}` column.\n"
+            # Add sample of 5 rows from data
+            sample_data = f"\nSample 5 rows from provided data, for context to Categorical distribution \n{df[[col]].sample(min(5, len(df))).fillna('').to_markdown(index=False)}\n"
+            analysis_str+=sample_data
             logging.info(f"Categorical distribution chart for {col} saved")
         return analysis_str, ai_insights
 
@@ -679,11 +669,7 @@ def perform_pca(df, output_dir, saved_files, n_components=2):
     if df is None or pca_components is None:
         return f"\n<!--### PCA Analysis\nNo numeric columns found for PCA analysis\n-->\n", None
     analysis_str, ai_insights = plot_pca_chart(df, pca_components, "Principal Component Analysis", output_dir, saved_files)
-
-
-    if analysis_str:
-        analysis_str += "\nThis scatter plot shows the PCA results.\n"
-
+    analysis_str += "\nThis scatter plot shows the PCA results.\n"
     logging.info("PCA analysis completed successfully.")
     return analysis_str, ai_insights
 
@@ -979,7 +965,7 @@ def analyze_csv_data(csv_file):
     output_dir = os.path.dirname(csv_file)
 
     # save all analysis in file
-    analyses_file_path = os.path.join(output_dir, f"data_analysis.md")
+    analyses_file_path = os.path.join(output_dir, f"DATA_ANALYSIS.md")
     logging.info(f"Output directory set to: {output_dir}")
 
     # Following variable to track successfully created files. This is to ensure that final document has only generated file and no empty paths
@@ -1056,19 +1042,15 @@ def analyze_csv_data(csv_file):
          logging.error(f"Error during the analysis process: {e}")
          return None, None, None, None
     
+
 def tell_me_a_story(analyses, analyses_path, saved_files, ai_insights):
     """
     Narrates a story based on the analysis.
      """
     readme_path = os.path.join(analyses_path, "README.md")
     try:
-        with open(readme_path, "w") as readme_file:
-            story_context = f"Statistical data in markup:\n{analyses}"
-            #story_context += f"\n\nAI generated insights:\n {ai_insights}" if ai_insights else "" # Removed AI insights from here
+        with open(readme_path, "a") as readme_file:
 
-            readme_file.write("*Every story is complicated until it finds the right storyteller — Anonymous*\n\n\n")
-           # readme_file.write(f"{story_context}\n\n{ai_insights}")  # do not write it now. will add it later
-            
             try:
                 story = ai_bot_helper(
                     "Generate a creative, yet data-driven and professional story based on the provided content and graphs. The narrative should focus on four key aspects:" +
@@ -1077,25 +1059,28 @@ def tell_me_a_story(analyses, analyses_path, saved_files, ai_insights):
                     " 3) insights and anomalies identified by you, explaining them clearly and" +
                     " 4) the implications of your findings." +
                     " Include relevant images from the provided content, using the image descriptions and your analysis to make the story engaging and provide insights on the images. Also mention any data limitations or biases. Use external hyperlinks and references to strengthen the storyline.",
-                    story_context, #Use the full context with ai_insights
+                    analyses, #Use the full context with ai_insights
                      )
                 if story:
                     if not isinstance(story, str):
                         logging.error("AI bot did not return markdown output, but proceeding with static markdown")
-                        readme_file.write(f"{story_context}\n\n{ai_insights}")
                         return readme_path
                     readme_file.write(f"{story}\n")
                     logging.info("Added story to README.md file")
+                    
+                    # Call AI again for a final summary and more insights
+                    final_analysis_str = ai_bot_helper(question=f"Provide a overall summary and additional insights for the content provided.", context= f"{analyses}\n\n {' '.join(ai_insights)}") # joined here
+                    if final_analysis_str:
+                        readme_file.write(f"\n\n## AI Generated Summary and Additional Insights:\n{final_analysis_str}\n")
+                        logging.info("Added final AI generated summary and insights")
+
                     return readme_path
                 else:
                     logging.error(f"Unable to generate a story by AI Bot. Static content with all available insights will be used")
-                    readme_file.write(f"{story_context}\n\n{ai_insights}")
                     logging.info("Added story to README.md file, using static content since AI bot returned None")
                     return readme_path
             except Exception as e:
                 logging.error(f"Error during AI bot call in tell_me_a_story function: {e}, will use static analysis.")
-                #fall back to static content
-                readme_file.write(f"{story_context}\n\n{ai_insights}")
                 logging.info("Added story to README.md file, using static content due to AI bot failure")
                 return readme_path
     except FileNotFoundError as e:
@@ -1339,86 +1324,64 @@ def ai_bot_helper(question, context, img_path=None):
 
 
 # start here
+# main function.
 if __name__ == "__main__":
+    # Argument parsing logic
     parser = argparse.ArgumentParser(description="Automated data analysis tool")
     parser.add_argument("dataset_path", type=str, help="Path to the CSV file")
-
     args = parser.parse_args()
-
-    # Check if the dataset_path argument is provided and valid
-    if not args.dataset_path:
-        logging.error("The dataset_path argument is required.")
-        logging.info("Usage: uv run autolysis.py <dataset_path>")
-        sys.exit(1)
-
-    # Check if the provided file exists and is a CSV file
-    if not os.path.isfile(args.dataset_path) or not args.dataset_path.endswith(".csv"):
-        logging.error("The provided dataset_path must be a valid CSV file.")
-        logging.info("Usage: uv run autolysis.py <dataset_path>")
-        sys.exit(1)
-    if CONFIG.get("LLM_ENABLE_AI_ANALYSIS", False) and not CONFIG.get("AIPROXY_TOKEN", None):
-        logging.error("AI analysis flag is enabled. But the environment variable 'AIPROXY_TOKEN' is missing or empty. Static narrative will be saved to README file.")
-        # Use the same directory as of the input CSV file
-        output_dir = os.path.dirname(args.dataset_path)
-        # save all analysis in file
-        analyses_file_path = os.path.join(output_dir, f"data_analysis.md")
-        # Following variable to track successfully created files. This is to ensure that final document has only generated file and no empty paths
-        saved_files = set()
-        try:
-             df = read_csv_with_multiple_encodings(args.dataset_path)
-             logging.info(f"Successfully loaded the csv file")
-        except Exception as e:
-            logging.error(f"Error reading csv file: {e}")
-            sys.exit(1)
-        # Data Cleaning
-        df = clean_data(df)
-        analysis_report_content = do_basic_analysis(df, args.dataset_path)
-        # Write analysis content directly to README.md
-        output_dir = os.path.dirname(args.dataset_path)
-        if not os.path.exists(output_dir):
-                os.makedirs(output_dir)
-                logging.info(f"Created output directory since it didn't exist: {output_dir}")
-        readme_path = os.path.join(output_dir, "README.md")
-        try:
-            with open(readme_path, "w") as readme_file:
-                readme_file.write(analysis_report_content)
-            logging.info(f"All activities complete. Static narrative complete. Analysis data copied to the README.md file at: {readme_path} for users")
-        except Exception as e:
-            logging.error(f"Error writing analysis content to README.md file: {e}")
-
-        sys.exit(0) # exit
+    
     try:
         dataset_path = args.dataset_path
         logging.info(f"Starting data analysis on file: {dataset_path}")
+        # Get output directory before analysis so that a README.md can be created
+        output_dir = os.path.dirname(dataset_path)
+        # Create output directory if it doesn't exist
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir)
+            logging.info(f"Created output directory since it didn't exist: {output_dir}")
+
+        #create a dummy readme with basic data, before starting the analysis. This ensure that there is always something saved.
+        readme_path = os.path.join(output_dir, "README.md")
+        try:
+            # Added logic to write dummy file with basic info. This is crucial to provide static markdown if AI fails.
+            with open(readme_path, "w") as readme_file:
+                readme_file.write("*Initial analysis of the dataset*\n\n")
+            logging.info(f"Dummy README created at {readme_path} with minimal static content")
+        except Exception as e:
+            logging.error(f"Error writing to the README.md file during dummy file creation: {e}")
+            sys.exit(1)
 
         analysis_report_content, analysis_path, saved_files, ai_insights = analyze_csv_data(dataset_path)
 
         if not analysis_report_content:
-             logging.error(f"Error during the analyses process for the file: {dataset_path}")
-             sys.exit(1)
+            logging.error(f"Error during the analyses process for the file: {dataset_path}")
+            sys.exit(1)
         logging.info(f"Based on analysis, now creating a story in README.md file")
 
-        readme_path = os.path.join(os.path.dirname(dataset_path), "README.md") #setting the readme path
 
         if CONFIG.get("LLM_ENABLE_AI_ANALYSIS", False):
-            logging.info(f"AI analysis flag is enabled. Content may be enriched in README.md file")
-            readme_file = tell_me_a_story(analysis_report_content, os.path.dirname(dataset_path), saved_files, ai_insights)
-            if readme_file:
-                 logging.info(f"Final story is saved to: {readme_file}")
-            else:
-                logging.error(f"Error generating README.md file with AI assistance. Static content will be used")
+             # write analysis content to the existing README.md. This is to ensure that user always gets basic markdown
+             try:
+                with open(readme_path, "w") as readme_file:
+                     readme_file.write(analysis_report_content) #This ensures that at least static content gets written to README file
+                logging.info(f"Added basic analysis data to README.md file at {readme_path} before starting AI call")
+             except Exception as e:
+                    logging.error(f"Error writing analysis content to README.md file: {e}")
+             logging.info(f"AI analysis flag is enabled. Content may be enriched in README.md file")
+             readme_file = tell_me_a_story(analysis_report_content, os.path.dirname(dataset_path), saved_files, ai_insights)
+             if readme_file:
+                  logging.info(f"Final story is saved to: {readme_file}")
+             else:
+                 logging.error(f"Error generating README.md file with AI assistance. Static content will be used")
         else:
             logging.info(f"AI analysis flag is disabled. Static narrative will be saved to README file, 'without' AI assistance")
             # Write analysis content directly to README.md
-            output_dir = os.path.dirname(dataset_path)
-            if not os.path.exists(output_dir):
-                os.makedirs(output_dir)
-                logging.info(f"Created output directory since it didn't exist: {output_dir}")
             try:
-                 # Also add analysis to README.md. This will avoid confusion that readme.md is generated when AI is enabled
-                 with open(readme_path, "w") as readme_file:
+                # Also add analysis to README.md. This will avoid confusion that readme.md is generated when AI is enabled
+                with open(readme_path, "w") as readme_file:
                     readme_file.write(analysis_report_content)
-                 logging.info(f"All activities complete. Static narrative complete. Analysis data copied to the README.md file at: {readme_path} for users")
+                logging.info(f"All activities complete. Static narrative complete. Analysis data copied to the README.md file at: {readme_path} for users")
             except Exception as e:
                  logging.error(f"Error writing analysis content to README.md file: {e}")
     except Exception as e:
